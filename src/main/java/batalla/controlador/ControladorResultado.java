@@ -293,7 +293,12 @@ public class ControladorResultado {
                         logBatalla = String.join("\n", partidaGuardada.getCombatLog());
                     }
 
-                    if (batallaDAO.insertarBatalla(heroe.getNombre(), villano.getNombre(), nombreGanador, turnosBatalla,
+                    // Obtener IDs
+                    int heroeId = heroe.getId();
+                    int villanoId = villano.getId();
+                    int ganadorId = (nombreGanador.equals(heroe.getNombre())) ? heroeId : villanoId;
+
+                    if (batallaDAO.insertarBatalla(heroeId, villanoId, ganadorId, turnosBatalla,
                             logBatalla, mayorDanio, armasH, armasV, supremosH, supremosV, winrateHeroeStr,
                             winrateVillanoStr)) {
                         guardadas++;
@@ -312,7 +317,12 @@ public class ControladorResultado {
                         "Turnos: " + turnos;
             }
 
-            if (batallaDAO.insertarBatalla(heroe.getNombre(), villano.getNombre(), ganador, turnos,
+            // Obtener IDs
+            int heroeId = heroe.getId();
+            int villanoId = villano.getId();
+            int ganadorId = (ganador.equals(heroe.getNombre())) ? heroeId : villanoId;
+
+            if (batallaDAO.insertarBatalla(heroeId, villanoId, ganadorId, turnos,
                     logBatalla, mayorDanio, heroe.getArmasInvocadas(), villano.getArmasInvocadas(),
                     heroe.getAtaquesSupremosUsados(), villano.getAtaquesSupremosUsados(),
                     winrateHeroeStr, winrateVillanoStr)) {

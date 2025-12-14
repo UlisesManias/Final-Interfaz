@@ -14,13 +14,12 @@ public class BatallaDAO {
     }
 
     private void crearTablaSiNoExiste() {
-        // ID y fecha se autogeneran/definen, el resto son los campos pedidos
-        String sql = "CREATE TABLE IF NOT EXISTS historial_batallas ("
+        String sql = "CREATE TABLE IF NOT EXISTS batallas ("
                 + "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                + "fecha DATETIME DEFAULT CURRENT_TIMESTAMP, "
-                + "heroe TEXT, "
-                + "villano TEXT, "
-                + "ganador TEXT, "
+                + "fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "
+                + "heroe_id INTEGER, "
+                + "villano_id INTEGER, "
+                + "ganador_id INTEGER, "
                 + "turnos INTEGER, "
                 + "combat_log TEXT, "
                 + "mayor_danio INTEGER, "
@@ -29,27 +28,27 @@ public class BatallaDAO {
                 + "supremos_heroe INTEGER, "
                 + "supremos_villano INTEGER, "
                 + "winrate_heroe TEXT, "
-                + "winrate_villano TEXT)";
+                + "winrate_villano TEXT, "
+                + "FOREIGN KEY(heroe_id) REFERENCES personajes(id), "
+                + "FOREIGN KEY(villano_id) REFERENCES personajes(id), "
+                + "FOREIGN KEY(ganador_id) REFERENCES personajes(id))";
 
         try (Connection conn = ConexionDB.conectar();
                 Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
         } catch (SQLException e) {
-            System.err.println("Error al crear tabla historial_batallas: " + e.getMessage());
+            System.err.println("Error al crear tabla batallas: " + e.getMessage());
         }
     }
 
-    /**
-     * Inserta una batalla en la tabla 'historial_batallas' con todos los detalles.
-     */
-    public boolean insertarBatalla(String heroe, String villano, String ganador, int turnos,
+    public boolean insertarBatalla(int heroeId, int villanoId, int ganadorId, int turnos,
             String combatLog, int mayorDanio,
             int armasHeroe, int armasVillano,
             int supremosHeroe, int supremosVillano,
             String winrateHeroe, String winrateVillano) {
 
-        String sql = "INSERT INTO historial_batallas ("
-                + "heroe, villano, ganador, turnos, combat_log, "
+        String sql = "INSERT INTO batallas ("
+                + "heroe_id, villano_id, ganador_id, turnos, combat_log, "
                 + "mayor_danio, armas_heroe, armas_villano, "
                 + "supremos_heroe, supremos_villano, "
                 + "winrate_heroe, winrate_villano"
@@ -58,9 +57,9 @@ public class BatallaDAO {
         try (Connection conn = ConexionDB.conectar();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            ps.setString(1, heroe);
-            ps.setString(2, villano);
-            ps.setString(3, ganador);
+            ps.setInt(1, heroeId);
+            ps.setInt(2, villanoId);
+            ps.setInt(3, ganadorId);
             ps.setInt(4, turnos);
             ps.setString(5, combatLog);
             ps.setInt(6, mayorDanio);
@@ -76,17 +75,25 @@ public class BatallaDAO {
 
         } catch (SQLException e) {
             System.err.println("Error al insertar batalla: " + e.getMessage());
+            javax.swing.JOptionPane.showMessageDialog(null, "Error al guardar en BD: " + e.getMessage(), "Error SQL",
+                    javax.swing.JOptionPane.ERROR_MESSAGE);
             return false;
         }
     }
 
-    /**
-     * Listar todas las batallas para el historial general.
-     */
     public List<String[]> listarTodasRows() {
         List<String[]> lista = new ArrayList<>();
 
-        String sql = "SELECT id, fecha, heroe, villano, ganador, turnos FROM historial_batallas ORDER BY id DESC";
+        String sql = "SELECT b.id, b.fecha, "
+                + "h.nombre as heroe_nombre, "
+                + "v.nombre as villano_nombre, "
+                + "g.nombre as ganador_nombre, "
+                + "b.turnos "
+                + "FROM batallas b "
+                + "JOIN personajes h ON b.heroe_id = h.id "
+                + "JOIN personajes v ON b.villano_id = v.id "
+                + "JOIN personajes g ON b.ganador_id = g.id "
+                + "ORDER BY b.id DESC LIMIT 10";
 
         try (Connection conn = ConexionDB.conectar();
                 PreparedStatement ps = conn.prepareStatement(sql);
@@ -96,9 +103,9 @@ public class BatallaDAO {
                 String[] fila = new String[6];
                 fila[0] = String.valueOf(rs.getInt("id"));
                 fila[1] = rs.getString("fecha");
-                fila[2] = rs.getString("heroe");
-                fila[3] = rs.getString("villano");
-                fila[4] = rs.getString("ganador");
+                fila[2] = rs.getString("heroe_nombre");
+                fila[3] = rs.getString("villano_nombre");
+                fila[4] = rs.getString("ganador_nombre");
                 fila[5] = String.valueOf(rs.getInt("turnos"));
 
                 lista.add(fila);
@@ -115,7 +122,15 @@ public class BatallaDAO {
      * Devuelve toda la información de una batalla por su id.
      */
     public BatallaInfo obtenerBatallaPorId(int idBatalla) {
-        String sql = "SELECT * FROM historial_batallas WHERE id = ?";
+        String sql = "SELECT b.*, "
+                + "h.nombre as heroe_nombre, "
+                + "v.nombre as villano_nombre, "
+                + "g.nombre as ganador_nombre "
+                + "FROM batallas b "
+                + "JOIN personajes h ON b.heroe_id = h.id "
+                + "JOIN personajes v ON b.villano_id = v.id "
+                + "JOIN personajes g ON b.ganador_id = g.id "
+                + "WHERE b.id = ?";
 
         try (Connection conn = ConexionDB.conectar();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -127,9 +142,9 @@ public class BatallaDAO {
                     BatallaInfo info = new BatallaInfo();
                     info.setId(rs.getInt("id"));
                     info.setFecha(rs.getString("fecha"));
-                    info.setHeroe(rs.getString("heroe"));
-                    info.setVillano(rs.getString("villano"));
-                    info.setGanador(rs.getString("ganador"));
+                    info.setHeroe(rs.getString("heroe_nombre")); // Usar alias del JOIN
+                    info.setVillano(rs.getString("villano_nombre"));
+                    info.setGanador(rs.getString("ganador_nombre"));
                     info.setTurnos(rs.getInt("turnos"));
 
                     info.setCombatLog(rs.getString("combat_log"));

@@ -7,6 +7,33 @@ import java.util.List;
 
 public class PersonajeDAO {
 
+    public PersonajeDAO() {
+        crearTablaSiNoExiste();
+    }
+
+    private void crearTablaSiNoExiste() {
+        String sql = "CREATE TABLE IF NOT EXISTS personajes ("
+                + "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                + "nombre TEXT, "
+                + "apodo TEXT UNIQUE, "
+                + "tipo TEXT, "
+                + "vida INTEGER, "
+                + "fuerza INTEGER, "
+                + "defensa INTEGER, "
+                + "bendiciones INTEGER, "
+                + "victorias INTEGER, "
+                + "derrotas INTEGER, "
+                + "supremos_usados INTEGER, "
+                + "armas_invocadas INTEGER)";
+
+        try (Connection conn = ConexionDB.conectar();
+                Statement stmt = conn.createStatement()) {
+            stmt.execute(sql);
+        } catch (SQLException e) {
+            System.err.println("Error al crear tabla personajes: " + e.getMessage());
+        }
+    }
+
     // INSERT - Agregar un personaje nuevo
     public void insertar(Personaje p) {
 
