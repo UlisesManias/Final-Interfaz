@@ -4,26 +4,39 @@ import batalla.modelo.*;
 import batalla.vista.PantallaBatalla;
 import batalla.vista.PantallaResultado;
 
-import java.util.Random;
+import javax.swing.Timer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
-/**
- * Controlador para la pantalla de batalla
- * Gestiona la lógica de combate entre héroe y villano
- */
 public class ControladorBatalla {
+
     private PantallaBatalla vista;
     private ConfiguracionPartida config;
     private Heroe heroe;
     private Villano villano;
+
     private int turno = 1;
     private int batallaActual = 1;
-    private Random random = new Random();
     private boolean turnoHeroe;
     private boolean pausado = false;
 
-    // Constructor con ConfiguracionPartida
+    private Random random = new Random();
+
+    // Estadísticas
+    private int mayorDanio = 0;
+    private String personajeMayorDanio = "";
+    private int batallaMasLarga = 0;
+    private String ganadorBatallaMasLarga = "";
+    private List<Integer> turnosPorBatalla = new ArrayList<>(); // Guardar turnos de cada batalla
+    private List<String> ganadoresPorBatalla = new ArrayList<>(); // Guardar ganador de cada batalla
+
+    private List<String> combatLog = new ArrayList<>();
+
+    // =========================
+    // CONSTRUCTORES
+    // =========================
+
     public ControladorBatalla(PantallaBatalla vista, ConfiguracionPartida config) {
         this.vista = vista;
         this.config = config;
@@ -32,8 +45,7 @@ public class ControladorBatalla {
         this.turnoHeroe = random.nextBoolean();
         configurarEventos();
     }
-    
-    // Constructor de compatibilidad
+
     public ControladorBatalla(PantallaBatalla vista, Heroe heroe, Villano villano) {
         this.vista = vista;
         this.heroe = heroe;
@@ -44,230 +56,204 @@ public class ControladorBatalla {
         config.agregarPersonaje(villano);
         configurarEventos();
     }
-    
+
+    // =========================
+    // EVENTOS
+    // =========================
+
     private void configurarEventos() {
         vista.getBtnIniciar().addActionListener(e -> iniciarBatallas());
+        vista.getBtnPausa().addActionListener(e -> togglePausa());
     }
-    
-    private void iniciarBatallas() {
-        // Obtener configuración de la vista
-        int cantidadBatallas = (int) vista.getSpnNumBatallas().getValue();
-        boolean ataquesSupremos = vista.getChkAtkSupremos().isSelected();
-        
-        config.setCantidadBatallas(cantidadBatallas);
-        config.setAtaquesSupremosActivados(ataquesSupremos);
-        
-        // Desactivar botón
-        vista.getBtnIniciar().setEnabled(false);
-        
-        // Iniciar primera batalla
-        batallaActual = 1;
-        turno = 1;
-        iniciarBatalla();
+
+    private void togglePausa() {
+        pausado = !pausado;
+        vista.setPausado(pausado);
+        vista.agregarLog(pausado ? "⏸ COMBATE PAUSADO" : "▶ COMBATE REANUDADO");
+
+        if (!pausado && heroe.estaVivo() && villano.estaVivo()) {
+            siguienteTurno();
+        }
     }
+
+    // =========================
+    // INICIO
+    // =========================
 
     public void iniciar() {
         vista.setVisible(true);
         vista.limpiarLog();
-        vista.setInfoPartida("Batalla: 0/" + config.getCantidadBatallas());
+        vista.setInfoPartida("Batalla: 0/0");
         vista.setTurno("Turno: 0");
     }
-    
-    private void iniciarBatalla() {
-        // Restaurar todas las estadísticas iniciales antes de cada batalla
-        heroe.restaurarEstadisticasIniciales();
-        villano.restaurarEstadisticasIniciales();
-        
-        turno = 1;
-        turnoHeroe = random.nextBoolean();
-        
-        actualizarInformacionPartida();
-        String logInicio = "=== COMIENZA LA BATALLA " + batallaActual + " ===";
-        String logContendientes = heroe.getNombre() + " (" + heroe.getApodo() + ") vs " + villano.getNombre() + " (" + villano.getApodo() + ")";
-        vista.agregarLog(logInicio);
-        vista.agregarLog(logContendientes);
-        vista.agregarLog("");
-        combatLog.add(logInicio);
-        combatLog.add(logContendientes);
-        combatLog.add("");
-        
-        actualizarEstadoPersonajes();
-        
-        // Iniciar el ciclo de batalla
-        siguienteTurno();
-    }
-    
-    private void actualizarInformacionPartida() {
-        vista.setInfoPartida("Batalla: " + batallaActual + "/" + config.getCantidadBatallas());
-        vista.setTurno("Turno: " + turno);
-    }
-    
-    private void actualizarEstadoPersonajes() {
-        vista.actualizarEstadoPersonaje(heroe);
-        vista.actualizarEstadoPersonaje(villano);
+
+    private void iniciarBatallas() {
+        int cantidadBatallas = (int) vista.getSpnNumBatallas().getValue();
+        boolean ataquesSupremos = vista.getChkAtkSupremos().isSelected();
+
+        config.setCantidadBatallas(cantidadBatallas);
+        config.setAtaquesSupremosActivados(ataquesSupremos);
+
+        vista.getBtnIniciar().setEnabled(false);
+        vista.getBtnPausa().setEnabled(true);
+
+        batallaActual = 1;
+        iniciarBatalla();
     }
 
-    public void siguienteTurno() {
+    private void iniciarBatalla() {
+        heroe.restaurarEstadisticasIniciales();
+        villano.restaurarEstadisticasIniciales();
+
+        if (heroe.getVida() <= 0)
+            heroe.setVida(100);
+        if (villano.getVida() <= 0)
+            villano.setVida(100);
+
+        vista.limpiarLog();
+        combatLog.clear();
+
+        turno = 1;
+        turnoHeroe = random.nextBoolean();
+        mayorDanio = 0;
+        personajeMayorDanio = "";
+
+        imprimirEncabezadoTabla();
+        actualizarUI();
+
+        siguienteTurno();
+    }
+
+    // =========================
+    // COMBATE
+    // =========================
+
+    private void siguienteTurno() {
+        if (pausado)
+            return;
+
         if (!heroe.estaVivo() || !villano.estaVivo()) {
             finalizarBatalla();
             return;
         }
 
-        String logTurno = "--- TURNO " + turno + " ---";
-        vista.agregarLog(logTurno);
-        combatLog.add(logTurno);
-        
-        int danioCausado = 0;
-        String atacante = "";
-        
+        ResultadoCombate resultado;
+
         if (turnoHeroe) {
-            String logTurnoHeroe = "Turno de " + heroe.getNombre();
-            vista.agregarLog(logTurnoHeroe);
-            combatLog.add(logTurnoHeroe);
-            
-            // Usar ataque supremo si tiene 100% bendiciones y está activado
-            if (config.isAtaquesSupremosActivados() && heroe.getBendiciones() >= 100) {
-                String logSupremo = heroe.getNombre() + " tiene 100% de bendiciones! Usando ataque supremo!";
-                vista.agregarLog(logSupremo);
-                combatLog.add(logSupremo);
-                int vidaAntes = villano.getVida();
-                heroe.usarAtaqueSupremo(villano);
-                danioCausado = vidaAntes - villano.getVida();
-                atacante = heroe.getNombre();
-            } else {
-                int vidaAntes = villano.getVida();
-                heroe.decidirAccion(villano);
-                danioCausado = vidaAntes - villano.getVida();
-                atacante = heroe.getNombre();
-            }
+            resultado = (config.isAtaquesSupremosActivados() && heroe.getBendiciones() >= 100)
+                    ? heroe.usarAtaqueSupremo(villano)
+                    : heroe.decidirAccion(villano);
         } else {
-            String logTurnoVillano = "Turno de " + villano.getNombre();
-            vista.agregarLog(logTurnoVillano);
-            combatLog.add(logTurnoVillano);
-            
-            // Usar ataque supremo si tiene 100% bendiciones y está activado
-            if (config.isAtaquesSupremosActivados() && villano.getBendiciones() >= 100 && !villano.isLeviatanInvocado()) {
-                String logSupremo = villano.getNombre() + " tiene 100% de maldiciones! Invocando Leviatán!";
-                vista.agregarLog(logSupremo);
-                combatLog.add(logSupremo);
-                villano.invocarLeviatan();
-            } else {
-                int vidaAntes = heroe.getVida();
-                villano.decidirAccion(heroe);
-                danioCausado = vidaAntes - heroe.getVida();
-                atacante = villano.getNombre();
-            }
+            resultado = (config.isAtaquesSupremosActivados()
+                    && villano.getBendiciones() >= 100
+                    && !villano.isLeviatanInvocado())
+                            ? villano.invocarLeviatan()
+                            : villano.decidirAccion(heroe);
         }
-        
-        // Actualizar mayor daño
-        if (danioCausado > mayorDanio) {
-            mayorDanio = danioCausado;
-            personajeMayorDanio = atacante;
+
+        if (resultado.getDanioRealizado() > mayorDanio) {
+            mayorDanio = resultado.getDanioRealizado();
+            personajeMayorDanio = resultado.getAtacanteNombre();
         }
-        
-        // Mostrar estado actual
-        vista.agregarLog("");
-        String logEstado = "Estado actual:";
-        vista.agregarLog(logEstado);
-        combatLog.add("");
-        combatLog.add(logEstado);
-        
-        String logHeroe = heroe.getNombre() + ": " + heroe.getVida() + " vida | " + heroe.getBendiciones() + "% bendiciones";
-        String logVillano = villano.getNombre() + ": " + villano.getVida() + " vida | " + villano.getBendiciones() + "% maldiciones";
-        vista.agregarLog(logHeroe);
-        vista.agregarLog(logVillano);
-        vista.agregarLog("");
-        combatLog.add(logHeroe);
-        combatLog.add(logVillano);
-        
+
+        imprimirFilaTurno(resultado);
+
         turnoHeroe = !turnoHeroe;
+        actualizarUI();
         turno++;
-        actualizarInformacionPartida();
-        actualizarEstadoPersonajes();
-        
-        // Continuar automáticamente si ambos están vivos y no está pausado
-        if (heroe.estaVivo() && villano.estaVivo() && !pausado) {
-            javax.swing.SwingUtilities.invokeLater(() -> {
-                try {
-                    Thread.sleep(1000); // Pausa de 1 segundo entre turnos
-                    if (!pausado) {
-                        siguienteTurno();
-                    }
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            });
-        } else if (!pausado) {
-            finalizarBatalla();
-        }
+
+        Timer timer = new Timer(1000, e -> {
+            ((Timer) e.getSource()).stop();
+            siguienteTurno();
+        });
+        timer.setRepeats(false);
+        timer.start();
     }
-    
-    private List<String> combatLog = new ArrayList<>();
-    private int mayorDanio = 0;
-    private String personajeMayorDanio = "";
-    private int batallaMasLarga = 0;
-    private String ganadorBatallaMasLarga = "";
+
+    // =========================
+    // LOG EN TABLA
+    // =========================
+
+    private void imprimirEncabezadoTabla() {
+        vista.agregarLog("================================================================================");
+        vista.agregarLog("                               COMBAT LOG");
+        vista.agregarLog("================================================================================");
+        vista.agregarLog(String.format(
+                "Batalla: %d / %d | Ataques Supremos: %s",
+                batallaActual,
+                config.getCantidadBatallas(),
+                config.isAtaquesSupremosActivados() ? "ON" : "OFF"));
+        vista.agregarLog("--------------------------------------------------------------------------------");
+        vista.agregarLog(String.format(
+                "%-5s | %-12s | %-15s | %-4s | %-4s | %-5s | %-6s | %-6s",
+                "Turno", "Atacante", "Acción", "Daño", "Crit", "Parry", "VidaH", "VidaV"));
+        vista.agregarLog("--------------------------------------------------------------------------------");
+    }
+
+    private void imprimirFilaTurno(ResultadoCombate r) {
+        String fila = String.format(
+                "%-5d | %-12s | %-15s | %-4d | %-4s | %-5s | %-6d | %-6d",
+                turno,
+                r.getAtacanteNombre(),
+                r.getAccionNombre(),
+                r.getDanioRealizado(),
+                r.isEsCritico() ? "SI" : "NO",
+                r.isEsParry() ? "SI" : "NO",
+                heroe.getVida(),
+                villano.getVida());
+
+        vista.agregarLog(fila);
+        combatLog.add(fila);
+    }
+
+    // =========================
+    // FINALIZACIÓN
+    // =========================
 
     private void finalizarBatalla() {
-        String logFinal = "=== BATALLA FINALIZADA ===";
-        vista.agregarLog(logFinal);
-        combatLog.add(logFinal);
-        
-        Personaje ganador;
-        String logGanador;
-        if (heroe.estaVivo()) {
-            ganador = heroe;
-            heroe.incrementarVictoria();
-            logGanador = heroe.getNombre() + " ha triunfado!";
-            vista.agregarLog(logGanador);
-            combatLog.add(logGanador);
-        } else {
-            ganador = villano;
-            villano.incrementarVictoria();
-            logGanador = villano.getNombre() + " ha vencido!";
-            vista.agregarLog(logGanador);
-            combatLog.add(logGanador);
-        }
-        
-        // Actualizar estadísticas
+        Personaje ganador = heroe.estaVivo() ? heroe : villano;
+        Personaje perdedor = heroe.estaVivo() ? villano : heroe;
+
+        ganador.incrementarVictoria();
+        perdedor.incrementarDerrota();
+
+        vista.agregarLog("--------------------------------------------------------------------------------");
+        vista.agregarLog("GANADOR: " + ganador.getNombre());
+        vista.agregarLog("TURNOS TOTALES: " + (turno - 1));
+        vista.agregarLog("MAYOR DAÑO: " + mayorDanio + " (" + personajeMayorDanio + ")");
+        vista.agregarLog("================================================================================");
+
+        // Guardar turnos de esta batalla
+        turnosPorBatalla.add(turno - 1);
+        // Guardar ganador de esta batalla
+        ganadoresPorBatalla.add(ganador.getNombre());
+
         if (turno > batallaMasLarga) {
             batallaMasLarga = turno;
             ganadorBatallaMasLarga = ganador.getNombre();
         }
-        
-        // Verificar si hay más batallas
+
         batallaActual++;
+
         if (batallaActual > config.getCantidadBatallas()) {
-            // Todas las batallas completadas
             finalizarTodasLasBatallas();
         } else {
-            // Reiniciar para siguiente batalla
-            reiniciarParaSiguienteBatalla();
+            Timer timer = new Timer(2000, e -> {
+                ((Timer) e.getSource()).stop();
+                iniciarBatalla();
+            });
+            timer.setRepeats(false);
+            timer.start();
         }
     }
-    
-    private void reiniciarParaSiguienteBatalla() {
-        String logPreparacion = "=== PREPARANDO SIGUIENTE BATALLA ===";
-        vista.agregarLog("");
-        vista.agregarLog(logPreparacion);
-        combatLog.add("");
-        combatLog.add(logPreparacion);
-        
-        javax.swing.SwingUtilities.invokeLater(() -> {
-            try {
-                Thread.sleep(2000);
-                iniciarBatalla();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        });
-    }
-    
+
     private void finalizarTodasLasBatallas() {
-        // Guardar estadísticas de personajes
-        GestorPersistencia.guardarPersonajes(config.getPersonajes());
-        
-        // Crear partida guardada con todos los datos
+        // Guardar directamente el héroe y villano que participaron en las batallas
+        List<Personaje> personajesAGuardar = new ArrayList<>();
+        personajesAGuardar.add(heroe);
+        personajesAGuardar.add(villano);
+        GestorPersistencia.guardarPersonajes(personajesAGuardar);
+
         PartidaGuardada partida = new PartidaGuardada();
         partida.setHeroeNombre(heroe.getNombre());
         partida.setHeroeApodo(heroe.getApodo());
@@ -276,16 +262,28 @@ public class ControladorBatalla {
         partida.setCantidadBatallas(config.getCantidadBatallas());
         partida.setAtaquesSupremosActivados(config.isAtaquesSupremosActivados());
         partida.setCombatLog(combatLog);
-        
-        // Abrir pantalla de resultados
-        javax.swing.SwingUtilities.invokeLater(() -> {
-            PantallaResultado pantallaResultado = new PantallaResultado();
-            ControladorResultado controladorResultado = new ControladorResultado(
-                pantallaResultado, config.getPersonajes(), config.getCantidadBatallas(), partida,
-                mayorDanio, personajeMayorDanio, batallaMasLarga, ganadorBatallaMasLarga);
-            controladorResultado.iniciar();
-            vista.dispose();
-        });
+
+        PantallaResultado pantallaResultado = new PantallaResultado();
+        ControladorResultado controladorResultado = new ControladorResultado(
+                pantallaResultado,
+                config.getPersonajes(),
+                config.getCantidadBatallas(),
+                partida,
+                mayorDanio,
+                personajeMayorDanio,
+                batallaMasLarga,
+                ganadorBatallaMasLarga,
+                turnosPorBatalla,
+                ganadoresPorBatalla);
+
+        controladorResultado.iniciar();
+        vista.dispose();
+    }
+
+    private void actualizarUI() {
+        vista.setInfoPartida("Batalla: " + batallaActual + "/" + config.getCantidadBatallas());
+        vista.setTurno("Turno: " + turno);
+        vista.actualizarEstadoPersonaje(heroe);
+        vista.actualizarEstadoPersonaje(villano);
     }
 }
-

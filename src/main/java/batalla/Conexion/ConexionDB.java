@@ -4,7 +4,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
-public class ConexionSQLite {
+public class ConexionDB {
 
      private static final String URL = "jdbc:sqlite:src/main/java/batalla/database/BDjuego.db";
 

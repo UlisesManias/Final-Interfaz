@@ -21,17 +21,21 @@ public class ControladorPrincipal {
         vista.getBtnHistorial().addActionListener(e -> abrirHistorial());
         vista.getBtnRanking().addActionListener(e -> abrirRanking());
     }
-    
+
     private void abrirHistorial() {
         batalla.vista.PantallaHistorial pantallaHistorial = new batalla.vista.PantallaHistorial();
-        batalla.controlador.ControladorHistorial controladorHistorial = new batalla.controlador.ControladorHistorial(pantallaHistorial);
+        batalla.controlador.ControladorHistorial controladorHistorial = new batalla.controlador.ControladorHistorial(
+                pantallaHistorial);
         controladorHistorial.iniciar();
+        vista.dispose();
     }
-    
+
     private void abrirRanking() {
         batalla.vista.PantallaRanking pantallaRanking = new batalla.vista.PantallaRanking();
-        batalla.controlador.ControladorRanking controladorRanking = new batalla.controlador.ControladorRanking(pantallaRanking);
+        batalla.controlador.ControladorRanking controladorRanking = new batalla.controlador.ControladorRanking(
+                pantallaRanking);
         controladorRanking.iniciar();
+        vista.dispose();
     }
 
     private void abrirConfiguracion() {
@@ -45,4 +49,3 @@ public class ControladorPrincipal {
         vista.setVisible(true);
     }
 }
-

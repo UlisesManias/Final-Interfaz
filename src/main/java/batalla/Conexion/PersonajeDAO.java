@@ -11,20 +11,23 @@ public class PersonajeDAO {
     public void insertar(Personaje p) {
 
         String sql = "INSERT INTO personajes "
-                   + "(nombre, apodo, tipo, vida_final, victorias, derrotas, supremos_usados, armas_invocadas) "
-                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                + "(nombre, apodo, tipo, vida, fuerza, defensa, bendiciones, victorias, derrotas, supremos_usados, armas_invocadas) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-        try (Connection conn = ConexionSQLite.conectar();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = ConexionDB.conectar();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, p.getNombre());
             ps.setString(2, p.getApodo());
             ps.setString(3, p.getTipo());
-            ps.setInt(4, p.getVida()); // vida_final
-            ps.setInt(5, p.getVictorias());
-            ps.setInt(6, p.getDerrotas());
-            ps.setInt(7, p.getAtaquesSupremosUsados());
-            ps.setInt(8, p.getArmasInvocadas());
+            ps.setInt(4, p.getVidaMaxima()); // vida inicial/máxima
+            ps.setInt(5, p.getFuerza());
+            ps.setInt(6, p.getDefensa());
+            ps.setInt(7, p.getBendiciones());
+            ps.setInt(8, p.getVictorias());
+            ps.setInt(9, p.getDerrotas());
+            ps.setInt(10, p.getAtaquesSupremosUsados());
+            ps.setInt(11, p.getArmasInvocadas());
 
             ps.executeUpdate();
 
@@ -37,23 +40,41 @@ public class PersonajeDAO {
     public void actualizarEstadisticas(Personaje p) {
 
         String sql = "UPDATE personajes SET "
-                   + "vida_final = ?, victorias = ?, derrotas = ?, supremos_usados = ?, armas_invocadas = ? "
-                   + "WHERE apodo = ?";
+                + "vida = ?, fuerza = ?, defensa = ?, bendiciones = ?, victorias = ?, derrotas = ?, supremos_usados = ?, armas_invocadas = ? "
+                + "WHERE apodo = ?";
 
-        try (Connection conn = ConexionSQLite.conectar();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = ConexionDB.conectar();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            ps.setInt(1, p.getVida());
-            ps.setInt(2, p.getVictorias());
-            ps.setInt(3, p.getDerrotas());
-            ps.setInt(4, p.getAtaquesSupremosUsados());
-            ps.setInt(5, p.getArmasInvocadas());
-            ps.setString(6, p.getApodo());
+            ps.setInt(1, p.getVidaMaxima());
+            ps.setInt(2, p.getFuerza());
+            ps.setInt(3, p.getDefensa());
+            ps.setInt(4, p.getBendiciones());
+            ps.setInt(5, p.getVictorias());
+            ps.setInt(6, p.getDerrotas());
+            ps.setInt(7, p.getAtaquesSupremosUsados());
+            ps.setInt(8, p.getArmasInvocadas());
+            ps.setString(9, p.getApodo());
 
             ps.executeUpdate();
 
         } catch (SQLException e) {
             System.err.println("Error al actualizar estadísticas: " + e.getMessage());
+        }
+    }
+
+    // DELETE - Eliminar un personaje por apodo
+    public void eliminar(String apodo) {
+        String sql = "DELETE FROM personajes WHERE apodo = ?";
+
+        try (Connection conn = ConexionDB.conectar();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, apodo);
+            ps.executeUpdate();
+
+        } catch (SQLException e) {
+            System.err.println("Error al eliminar personaje: " + e.getMessage());
         }
     }
 
@@ -63,8 +84,8 @@ public class PersonajeDAO {
         String sql = "SELECT * FROM personajes WHERE apodo = ?";
         Personaje p = null;
 
-        try (Connection conn = ConexionSQLite.conectar();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = ConexionDB.conectar();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, apodo);
 
@@ -87,9 +108,9 @@ public class PersonajeDAO {
         List<Personaje> lista = new ArrayList<>();
         String sql = "SELECT * FROM personajes";
 
-        try (Connection conn = ConexionSQLite.conectar();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+        try (Connection conn = ConexionDB.conectar();
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(sql)) {
 
             while (rs.next()) {
                 lista.add(mapearPersonaje(rs));
@@ -108,9 +129,9 @@ public class PersonajeDAO {
         List<Personaje> lista = new ArrayList<>();
         String sql = "SELECT * FROM personajes ORDER BY victorias DESC";
 
-        try (Connection conn = ConexionSQLite.conectar();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+        try (Connection conn = ConexionDB.conectar();
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(sql)) {
 
             while (rs.next()) {
                 lista.add(mapearPersonaje(rs));
@@ -126,26 +147,44 @@ public class PersonajeDAO {
     // MÉTODO PRIVADO - Convertir fila SQL → Objeto Personaje
     private Personaje mapearPersonaje(ResultSet rs) throws SQLException {
 
-        Personaje p = new Personaje(
-            rs.getString("nombre"),
-            rs.getString("apodo"),
-            rs.getString("tipo"),
-            rs.getInt("vida_final"),
-            0, // fuerza NO se guarda en la BD
-            0, // defensa NO se guarda en la BD
-            0  // bendiciones NO se guarda en la BD
-        ) {
-            @Override
-            public void invocarArma() {}
-            @Override
-            public void decidirAccion(Personaje enemigo) {}
-        };
+        String tipo = rs.getString("tipo");
+        Personaje p;
+
+        // Crear instancia correcta según el tipo
+        if ("Heroe".equals(tipo)) {
+            p = new batalla.modelo.Heroe(
+                    rs.getString("nombre"),
+                    rs.getString("apodo"),
+                    rs.getInt("vida"),
+                    rs.getInt("fuerza"),
+                    rs.getInt("defensa"),
+                    rs.getInt("bendiciones"));
+        } else {
+            p = new batalla.modelo.Villano(
+                    rs.getString("nombre"),
+                    rs.getString("apodo"),
+                    rs.getInt("vida"),
+                    rs.getInt("fuerza"),
+                    rs.getInt("defensa"),
+                    rs.getInt("bendiciones"));
+        }
 
         p.setId(rs.getInt("id"));
-        p.setVictorias(rs.getInt("victorias"));
-        p.setDerrotas(rs.getInt("derrotas"));
-        p.setAtaquesSupremosUsados(rs.getInt("supremos_usados"));
-        p.setArmasInvocadas(rs.getInt("armas_invocadas"));
+
+        // Restaurar estadísticas acumuladas
+        int victorias = rs.getInt("victorias");
+        int derrotas = rs.getInt("derrotas");
+        int supremos = rs.getInt("supremos_usados");
+        int armas = rs.getInt("armas_invocadas");
+
+        for (int i = 0; i < victorias; i++)
+            p.incrementarVictoria();
+        for (int i = 0; i < derrotas; i++)
+            p.incrementarDerrota();
+        for (int i = 0; i < supremos; i++)
+            p.incrementarAtaqueSupremo();
+        for (int i = 0; i < armas; i++)
+            p.incrementarArmaInvocada();
 
         return p;
     }
@@ -158,20 +197,21 @@ public class PersonajeDAO {
     // ================================================================
     public int asegurarPersonajeEnBD(Personaje p) {
 
-        if (p == null) return -1;
+        if (p == null)
+            return -1;
 
         // 1) BUSCAR PERSONAJE POR APODO (que es UNIQUE)
         String sqlBuscar = "SELECT id FROM personajes WHERE apodo = ? LIMIT 1";
 
-        try (Connection conn = ConexionSQLite.conectar();
-             PreparedStatement ps = conn.prepareStatement(sqlBuscar)) {
+        try (Connection conn = ConexionDB.conectar();
+                PreparedStatement ps = conn.prepareStatement(sqlBuscar)) {
 
             ps.setString(1, p.getApodo());
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     int idExistente = rs.getInt("id");
-                    p.setId(idExistente);   // ← asignar ID al objeto
+                    p.setId(idExistente); // ← asignar ID al objeto
                     return idExistente;
                 }
             }
@@ -181,27 +221,30 @@ public class PersonajeDAO {
 
         // 2) SI NO EXISTE → INSERTARLO
         String sqlInsert = "INSERT INTO personajes "
-                + "(nombre, apodo, tipo, vida_final, victorias, derrotas, supremos_usados, armas_invocadas) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                + "(nombre, apodo, tipo, vida, fuerza, defensa, bendiciones, victorias, derrotas, supremos_usados, armas_invocadas) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-        try (Connection conn = ConexionSQLite.conectar();
-             PreparedStatement ps = conn.prepareStatement(sqlInsert, Statement.RETURN_GENERATED_KEYS)) {
+        try (Connection conn = ConexionDB.conectar();
+                PreparedStatement ps = conn.prepareStatement(sqlInsert, Statement.RETURN_GENERATED_KEYS)) {
 
             ps.setString(1, p.getNombre());
             ps.setString(2, p.getApodo());
             ps.setString(3, p.getTipo());
-            ps.setInt(4, p.getVida());
-            ps.setInt(5, p.getVictorias());
-            ps.setInt(6, p.getDerrotas());
-            ps.setInt(7, p.getAtaquesSupremosUsados());
-            ps.setInt(8, p.getArmasInvocadas());
+            ps.setInt(4, p.getVidaMaxima());
+            ps.setInt(5, p.getFuerza());
+            ps.setInt(6, p.getDefensa());
+            ps.setInt(7, p.getBendiciones());
+            ps.setInt(8, p.getVictorias());
+            ps.setInt(9, p.getDerrotas());
+            ps.setInt(10, p.getAtaquesSupremosUsados());
+            ps.setInt(11, p.getArmasInvocadas());
 
             ps.executeUpdate();
 
             ResultSet rs = ps.getGeneratedKeys();
             if (rs.next()) {
                 int nuevoId = rs.getInt(1);
-                p.setId(nuevoId);   // ← asignar ID al objeto
+                p.setId(nuevoId); // ← asignar ID al objeto
                 return nuevoId;
             }
 

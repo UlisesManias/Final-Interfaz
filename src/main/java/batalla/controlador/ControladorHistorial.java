@@ -1,157 +1,59 @@
 package batalla.controlador;
 
 import batalla.Conexion.BatallaDAO;
+import batalla.Conexion.PersonajeDAO;
 import batalla.vista.PantallaHistorial;
 import batalla.vista.PantallaPrincipal;
-
+import batalla.vista.formHistorial;
+import java.util.List;
 import javax.swing.JOptionPane;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
+import javax.swing.table.DefaultTableModel;
 
 public class ControladorHistorial {
 
     private final PantallaHistorial vista;
     private final BatallaDAO batallaDAO;
+    private final PersonajeDAO personajeDAO;
 
     public ControladorHistorial(PantallaHistorial vista) {
         this.vista = vista;
         this.batallaDAO = new BatallaDAO();
+        this.personajeDAO = new PersonajeDAO();
         inicializar();
     }
 
     private void inicializar() {
         cargarTabla();
-
-        vista.getBtnVolver().addActionListener(e -> volver());
-        vista.getBtnBorrarPartida().addActionListener(e -> borrarPartida());
-        vista.getBtnCargarPartida().addActionListener(e -> cargarPartida());
+        configurarEventos();
     }
 
-    // ============================================================
-    // 1) Cargar el historial desde la base de datos
-    // ============================================================
     private void cargarTabla() {
-        var lista = batallaDAO.listarTodasRows();
+        List<String[]> historial = batallaDAO.listarTodasRows();
+        // Columnas: "N° Batalla", "Heroe", "Villano", "Ganador", "N° Turnos"
+        // lista trae: { id, fecha, heroe, villano, ganador, turnos }
+        // Adaptamos para que coincida con lo que espera la vista
 
-        String[] columnas = {
-            "N° Batalla",
-            "Fecha",
-            "Héroe",
-            "Villano",
-            "Ganador",
-            "N° Turnos"
-        };
+        Object[][] datos = new Object[historial.size()][5];
 
-        Object[][] datos = new Object[lista.size()][columnas.length];
-
-        for (int i = 0; i < lista.size(); i++) {
-            String[] fila = lista.get(i);
-
-            datos[i][0] = fila[0];  // ID
-            datos[i][1] = fila[1];  // Fecha
-            datos[i][2] = fila[2];  // Héroe
-            datos[i][3] = fila[3];  // Villano
-            datos[i][4] = fila[4];  // Ganador
-            datos[i][5] = fila[5];  // Turnos
+        for (int i = 0; i < historial.size(); i++) {
+            String[] fila = historial.get(i);
+            datos[i][0] = fila[0]; // ID
+            datos[i][1] = fila[2]; // Heroe
+            datos[i][2] = fila[3]; // Villano
+            datos[i][3] = fila[4]; // Ganador
+            datos[i][4] = fila[5]; // Turnos
         }
 
+        String[] columnas = { "N° Batalla", "Heroe", "Villano", "Ganador", "N° Turnos" };
         vista.actualizarTabla(datos, columnas);
     }
 
-    // ============================================================
-    // 2) Cargar partida seleccionada
-    // ============================================================
-    private void cargarPartida() {
-        int fila = vista.getFilaSeleccionada();
-
-        if (fila == -1) {
-            JOptionPane.showMessageDialog(vista,
-                    "Debes seleccionar una batalla.", "Error",
-                    JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        int idBatalla = Integer.parseInt(
-                vista.getTable().getValueAt(fila, 0).toString()
-        );
-
-        BatallaDAO.BatallaInfo info = batallaDAO.obtenerBatallaPorId(idBatalla);
-
-        if (info == null) {
-            JOptionPane.showMessageDialog(vista,
-                    "No se pudo cargar la batalla.",
-                    "Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        // Mostramos los datos de forma sencilla (después podemos hacer otra pantalla)
-        JOptionPane.showMessageDialog(vista,
-                "ID: " + info.getId() + "\n" +
-                "Fecha: " + info.getFecha() + "\n" +
-                "Turnos: " + info.getTurnos() + "\n\n" +
-                "HÉROE:\n" +
-                "ID: " + info.getHeroeId() + "\n" +
-                "Nombre: " + info.getHeroeNombre() + "\n" +
-                "Apodo: " + info.getHeroeApodo() + "\n" +
-                "Vida final: " + info.getHeroeVidaFinal() + "\n\n" +
-                "VILLANO:\n" +
-                "ID: " + info.getVillanoId() + "\n" +
-                "Nombre: " + info.getVillanoNombre() + "\n" +
-                "Apodo: " + info.getVillanoApodo() + "\n" +
-                "Vida final: " + info.getVillanoVidaFinal() + "\n\n" +
-                "GANADOR:\n" +
-                "ID: " + info.getGanadorId() + "\n" +
-                "Nombre: " + info.getGanadorNombre(),
-                "Detalle de Batalla",
-                JOptionPane.INFORMATION_MESSAGE
-        );
+    private void configurarEventos() {
+        vista.getBtnVolver().addActionListener(e -> volver());
+        vista.getBtnCargarPartida().addActionListener(e -> cargarDetallePartida());
+        vista.getBtnBorrarPartida().addActionListener(e -> borrarPartida());
     }
 
-    // ============================================================
-    // 3) Borrar partida
-    // ============================================================
-    private void borrarPartida() {
-        int fila = vista.getFilaSeleccionada();
-
-        if (fila == -1) {
-            JOptionPane.showMessageDialog(vista,
-                    "Debe seleccionar una batalla para borrar.",
-                    "Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        int idBatalla = Integer.parseInt(
-                vista.getTable().getValueAt(fila, 0).toString()
-        );
-
-        int confirm = JOptionPane.showConfirmDialog(
-                vista,
-                "¿Seguro que deseas borrar la batalla " + idBatalla + "?",
-                "Confirmar eliminación",
-                JOptionPane.YES_NO_OPTION
-        );
-
-        if (confirm != JOptionPane.YES_OPTION) return;
-
-        try (Connection conn = batalla.Conexion.ConexionSQLite.conectar();
-             PreparedStatement ps = conn.prepareStatement("DELETE FROM batallas WHERE id = ?")) {
-
-            ps.setInt(1, idBatalla);
-            ps.executeUpdate();
-
-            JOptionPane.showMessageDialog(vista, "Batalla borrada.");
-            cargarTabla();
-
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(vista,
-                    "Error al borrar la batalla.",
-                    "Error", JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
-    // ============================================================
-    // 4) Volver al menú principal
-    // ============================================================
     private void volver() {
         PantallaPrincipal p = new PantallaPrincipal();
         ControladorPrincipal ctrl = new ControladorPrincipal(p);
@@ -159,8 +61,37 @@ public class ControladorHistorial {
         vista.dispose();
     }
 
+    private void cargarDetallePartida() {
+        int filaSeleccionada = vista.getFilaSeleccionada();
+        if (filaSeleccionada == -1) {
+            JOptionPane.showMessageDialog(vista, "Seleccione una batalla para ver detalles.", "Aviso",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // Obtener ID de la tabla (asumiendo que está en la columna 0)
+        String idStr = (String) vista.getTable().getValueAt(filaSeleccionada, 0);
+        int idBatalla = Integer.parseInt(idStr);
+
+        BatallaDAO.BatallaInfo info = batallaDAO.obtenerBatallaPorId(idBatalla);
+        if (info != null) {
+            formHistorial form = new formHistorial();
+            ControladorFormHistorial ctrl = new ControladorFormHistorial(form, info);
+            ctrl.iniciar();
+            // No cerramos la pantalla de historial, solo abrimos el detalle encima
+        } else {
+            JOptionPane.showMessageDialog(vista, "No se pudo cargar la información de la batalla.", "Error",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void borrarPartida() {
+        JOptionPane.showMessageDialog(vista, "Funcionalidad de borrar partida individual no implementada en DAO aún.",
+                "Info", JOptionPane.INFORMATION_MESSAGE);
+        // Podríamos implementar batallaDAO.borrarBatalla(id) luego
+    }
+
     public void iniciar() {
         vista.setVisible(true);
     }
-
 }

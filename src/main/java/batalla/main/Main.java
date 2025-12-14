@@ -7,7 +7,7 @@ import batalla.controlador.ControladorPrincipal;
  * Clase principal del programa
  * Punto de entrada de la aplicación
  */
-public class Desafio4Carranza {
+public class Main {
     public static void main(String[] args) {
         // Iniciar la aplicación en el hilo de eventos de Swing
         javax.swing.SwingUtilities.invokeLater(() -> {

@@ -1,6 +1,7 @@
 package batalla.controlador;
 
 import batalla.modelo.GestorPersistencia;
+import batalla.vista.PantallaPrincipal;
 import batalla.vista.PantallaRanking;
 
 import java.util.List;
@@ -18,7 +19,7 @@ public class ControladorRanking {
     }
 
     private void configurarEventos() {
-        vista.getBtnVolver().addActionListener(e -> vista.dispose());
+        vista.getBtnVolver().addActionListener(e -> volver());
     }
 
     private void cargarRanking() {
@@ -53,6 +54,13 @@ public class ControladorRanking {
 
     public void iniciar() {
         vista.setVisible(true);
+    }
+    
+    private void volver() {
+        PantallaPrincipal p = new PantallaPrincipal();
+        ControladorPrincipal ctrl = new ControladorPrincipal(p);
+        ctrl.iniciar();
+        vista.dispose();
     }
 }
 

@@ -20,27 +20,62 @@ public class ControladorResultado {
     private Villano villano;
     private String ganador;
     private int turnos;
+    private List<Integer> turnosPorBatalla;
+    private List<String> ganadoresPorBatalla;
 
     // Constructor para múltiples batallas con estadísticas completas
     public ControladorResultado(PantallaResultado vista, List<Personaje> personajes, int totalBatallas,
-                                PartidaGuardada partida, int mayorDanio, String personajeMayorDanio,
-                                int batallaMasLarga, String ganadorBatallaMasLarga) {
+            PartidaGuardada partida, int mayorDanio, String personajeMayorDanio,
+            int batallaMasLarga, String ganadorBatallaMasLarga, List<Integer> turnosPorBatalla,
+            List<String> ganadoresPorBatalla) {
+        this.vista = vista;
+        this.personajes = personajes;
+        this.totalBatallas = totalBatallas;
+        this.turnosPorBatalla = turnosPorBatalla;
+        this.ganadoresPorBatalla = ganadoresPorBatalla;
+
+        // Inicializar campos para guardar partida
+        this.heroe = (Heroe) personajes.stream().filter(p -> p instanceof Heroe).findFirst().orElse(null);
+        this.villano = (Villano) personajes.stream().filter(p -> p instanceof Villano).findFirst().orElse(null);
+
+        if (this.heroe != null && this.villano != null) {
+            this.ganador = this.heroe.getVictorias() > this.villano.getVictorias() ? this.heroe.getNombre()
+                    : this.villano.getNombre();
+        }
+
+        // Calcular total de turnos
+        if (turnosPorBatalla != null) {
+            this.turnos = turnosPorBatalla.stream().mapToInt(Integer::intValue).sum();
+        } else {
+            this.turnos = 0;
+        }
+
+        configurarEventos();
+        mostrarReporteCompleto(partida, mayorDanio, personajeMayorDanio, batallaMasLarga, ganadorBatallaMasLarga,
+                turnosPorBatalla, ganadoresPorBatalla);
+    }
+
+    // Constructor para múltiples batallas (compatibilidad - sin turnos por batalla)
+    public ControladorResultado(PantallaResultado vista, List<Personaje> personajes, int totalBatallas,
+            PartidaGuardada partida, int mayorDanio, String personajeMayorDanio,
+            int batallaMasLarga, String ganadorBatallaMasLarga) {
         this.vista = vista;
         this.personajes = personajes;
         this.totalBatallas = totalBatallas;
         configurarEventos();
-        mostrarReporteCompleto(partida, mayorDanio, personajeMayorDanio, batallaMasLarga, ganadorBatallaMasLarga);
+        mostrarReporteCompleto(partida, mayorDanio, personajeMayorDanio, batallaMasLarga, ganadorBatallaMasLarga, null,
+                null);
     }
-    
+
     // Constructor para múltiples batallas (compatibilidad)
     public ControladorResultado(PantallaResultado vista, List<Personaje> personajes, int totalBatallas) {
         this.vista = vista;
         this.personajes = personajes;
         this.totalBatallas = totalBatallas;
         configurarEventos();
-        mostrarReporteCompleto(null, 0, "", 0, "");
+        mostrarReporteCompleto(null, 0, "", 0, "", null, null);
     }
-    
+
     // Constructor de compatibilidad para una sola batalla
     public ControladorResultado(PantallaResultado vista, Heroe heroe, Villano villano, String ganador, int turnos) {
         this.vista = vista;
@@ -58,7 +93,7 @@ public class ControladorResultado {
     private String personajeMayorDanio;
     private int batallaMasLarga;
     private String ganadorBatallaMasLarga;
-    
+
     private void configurarEventos() {
         vista.getBtnVolver().addActionListener(e -> volverPrincipal());
         vista.getBtnAgain().addActionListener(e -> nuevaBatalla());
@@ -67,7 +102,7 @@ public class ControladorResultado {
 
     private void mostrarResultados() {
         vista.limpiar();
-        
+
         // Mostrar resultado de la batalla
         vista.agregarResultado("=== RESULTADO DE LA BATALLA ===");
         vista.agregarResultado("");
@@ -78,7 +113,7 @@ public class ControladorResultado {
         vista.agregarResultado(heroe.getNombre() + ": " + heroe.getVida() + " vida restante");
         vista.agregarResultado(villano.getNombre() + ": " + villano.getVida() + " vida restante");
         vista.agregarResultado("");
-        
+
         // Mostrar armas utilizadas
         vista.agregarResultado("Armas utilizadas:");
         if (heroe.getArma() != null) {
@@ -86,59 +121,74 @@ public class ControladorResultado {
         } else {
             vista.agregarResultado(heroe.getNombre() + ": Ninguna");
         }
-        
+
         if (villano.getArma() != null) {
             vista.agregarResultado(villano.getNombre() + ": " + villano.getArma().getNombre());
         } else {
             vista.agregarResultado(villano.getNombre() + ": Ninguna");
         }
-        
+
         // Mostrar historial (simplificado)
         vista.agregarHistorial("Batalla: " + heroe.getNombre() + " vs " + villano.getNombre());
         vista.agregarHistorial("Ganador: " + ganador);
         vista.agregarHistorial("Turnos: " + turnos);
 
-        // Construir objeto PartidaGuardada básico para permitir guardar la partida individual
+        // Construir objeto PartidaGuardada básico para permitir guardar la partida
+        // individual
         partidaGuardada = new PartidaGuardada();
         partidaGuardada.setHeroeNombre(heroe.getNombre());
         partidaGuardada.setVillanoNombre(villano.getNombre());
         partidaGuardada.setCantidadBatallas(1);
-        // Agregar un combat log mínimo con información esencial (si el juego tuviera un log real, usarlo)
+        // Agregar un combat log mínimo con información esencial (si el juego tuviera un
+        // log real, usarlo)
         partidaGuardada.getCombatLog().add("Resultado: " + ganador + " en " + turnos + " turnos");
         partidaGuardada.getCombatLog().add(heroe.getNombre() + " vida final: " + heroe.getVida());
         partidaGuardada.getCombatLog().add(villano.getNombre() + " vida final: " + villano.getVida());
     }
-    
+
     private void mostrarReporteCompleto(PartidaGuardada partida, int mayorDanio, String personajeMayorDanio,
-                                       int batallaMasLarga, String ganadorBatallaMasLarga) {
+            int batallaMasLarga, String ganadorBatallaMasLarga, List<Integer> turnosPorBatalla,
+            List<String> ganadoresPorBatalla) {
         this.partidaGuardada = partida;
         this.mayorDanio = mayorDanio;
         this.personajeMayorDanio = personajeMayorDanio;
         this.batallaMasLarga = batallaMasLarga;
         this.ganadorBatallaMasLarga = ganadorBatallaMasLarga;
         vista.limpiar();
-        
+
         // Mostrar datos en tabla - una fila por batalla
         Object[][] datos = new Object[totalBatallas][5];
-        String[] columnas = {"N° Batalla", "Héroe", "Villano", "Ganador", "Turnos"};
-        
-        // Por ahora, mostrar datos básicos - se puede mejorar con datos reales de cada batalla
+        String[] columnas = { "N° Batalla", "Héroe", "Villano", "Ganador", "Turnos" };
+
+        // Por ahora, mostrar datos básicos - se puede mejorar con datos reales de cada
+        // batalla
         for (int i = 0; i < totalBatallas && i < datos.length; i++) {
             Personaje h = personajes.stream().filter(p -> p instanceof Heroe).findFirst().orElse(null);
             Personaje v = personajes.stream().filter(p -> p instanceof Villano).findFirst().orElse(null);
-            
+
             if (h != null && v != null) {
                 datos[i][0] = i + 1;
                 datos[i][1] = h.getNombre();
                 datos[i][2] = v.getNombre();
-                // El ganador se determinaría por las victorias
-                datos[i][3] = h.getVictorias() > v.getVictorias() ? h.getNombre() : v.getNombre();
-                datos[i][4] = batallaMasLarga; // Usar turnos reales si están disponibles
+
+                // Usar ganador real de cada batalla si está disponible
+                if (ganadoresPorBatalla != null && i < ganadoresPorBatalla.size()) {
+                    datos[i][3] = ganadoresPorBatalla.get(i);
+                } else {
+                    // Fallback a lógica anterior (menos precisa para batallas individuales)
+                    datos[i][3] = h.getVictorias() > v.getVictorias() ? h.getNombre() : v.getNombre();
+                }
+                // Usar turnos reales de cada batalla si están disponibles
+                if (turnosPorBatalla != null && i < turnosPorBatalla.size()) {
+                    datos[i][4] = turnosPorBatalla.get(i);
+                } else {
+                    datos[i][4] = "N/A";
+                }
             }
         }
-        
+
         vista.actualizarTabla(datos, columnas);
-        
+
         // Mostrar estadísticas
         vista.agregarResultado("=== ESTADÍSTICAS GENERALES ===");
         vista.agregarResultado("Total de batallas: " + totalBatallas);
@@ -146,15 +196,16 @@ public class ControladorResultado {
             vista.agregarResultado("Mayor daño en un solo ataque: " + mayorDanio + " (" + personajeMayorDanio + ")");
         }
         if (batallaMasLarga > 0) {
-            vista.agregarResultado("Batalla más larga: " + batallaMasLarga + " turnos (Ganador: " + ganadorBatallaMasLarga + ")");
+            vista.agregarResultado(
+                    "Batalla más larga: " + batallaMasLarga + " turnos (Ganador: " + ganadorBatallaMasLarga + ")");
         }
-        
+
         // Calcular totales
         int totalArmasHeroe = 0;
         int totalArmasVillano = 0;
         int totalSupremosHeroe = 0;
         int totalSupremosVillano = 0;
-        
+
         for (Personaje p : personajes) {
             if (p instanceof Heroe) {
                 totalArmasHeroe += p.getArmasInvocadas();
@@ -164,12 +215,12 @@ public class ControladorResultado {
                 totalSupremosVillano += p.getAtaquesSupremosUsados();
             }
         }
-        
+
         vista.agregarResultado("Total armas invocadas héroe: " + totalArmasHeroe);
         vista.agregarResultado("Total armas invocadas villano: " + totalArmasVillano);
         vista.agregarResultado("Ataques supremos ejecutados héroe: " + totalSupremosHeroe);
         vista.agregarResultado("Ataques supremos ejecutados villano: " + totalSupremosVillano);
-        
+
         // Cargar historial
         List<String> historial = GestorPersistencia.cargarHistorial();
         vista.agregarHistorial("=== HISTORIAL DE BATALLAS ===");
@@ -177,8 +228,7 @@ public class ControladorResultado {
             vista.agregarHistorial(batalla);
         }
     }
-    
-    
+
     private void guardarPartida() {
 
         if (heroe == null || villano == null) {
@@ -193,28 +243,53 @@ public class ControladorResultado {
         // 1) Asegurar que los Personajes existen en la BD
         // ================================
         PersonajeDAO pdao = new PersonajeDAO();
-
         pdao.asegurarPersonajeEnBD(heroe);
         pdao.asegurarPersonajeEnBD(villano);
 
-        // Determinar ganador como objeto Personaje
-        Personaje ganadorObj =
-                ganador.equals(heroe.getNombre()) ? heroe : villano;
-
-        pdao.asegurarPersonajeEnBD(ganadorObj);
-
         // ================================
-        // 2) Guardar en tabla batallas
+        // 2) Guardar cada batalla individualmente
         // ================================
         BatallaDAO batallaDAO = new BatallaDAO();
-        batallaDAO.insertarBatalla(heroe, villano, ganadorObj, turnos);
+        int guardadas = 0;
 
-        javax.swing.JOptionPane.showMessageDialog(vista,
-                "Batalla guardada correctamente en la base de datos.",
-                "Éxito",
-                javax.swing.JOptionPane.INFORMATION_MESSAGE);
+        // Si tenemos datos detallados por batalla
+        if (ganadoresPorBatalla != null && turnosPorBatalla != null) {
+            for (int i = 0; i < totalBatallas; i++) {
+                if (i < ganadoresPorBatalla.size() && i < turnosPorBatalla.size()) {
+                    String nombreGanador = ganadoresPorBatalla.get(i);
+                    int turnosBatalla = turnosPorBatalla.get(i);
+
+                    Personaje ganadorObj = nombreGanador.equals(heroe.getNombre()) ? heroe : villano;
+
+                    // Asegurar también al ganador (aunque ya aseguramos heroe/villano arriba)
+                    pdao.asegurarPersonajeEnBD(ganadorObj);
+
+                    if (batallaDAO.insertarBatalla(heroe, villano, ganadorObj, turnosBatalla)) {
+                        guardadas++;
+                    }
+                }
+            }
+        } else {
+            // Fallback para compatibilidad (una sola batalla o sin detalles)
+            Personaje ganadorObj = ganador.equals(heroe.getNombre()) ? heroe : villano;
+            pdao.asegurarPersonajeEnBD(ganadorObj);
+            if (batallaDAO.insertarBatalla(heroe, villano, ganadorObj, turnos)) {
+                guardadas = 1;
+            }
+        }
+
+        if (guardadas > 0) {
+            javax.swing.JOptionPane.showMessageDialog(vista,
+                    "Se han guardado " + guardadas + " batallas correctamente en la base de datos.",
+                    "Éxito",
+                    javax.swing.JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            javax.swing.JOptionPane.showMessageDialog(vista,
+                    "Error al guardar las batallas. Verifique la consola para más detalles.",
+                    "Error",
+                    javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
     }
-
 
     private void volverPrincipal() {
         PantallaPrincipal pantallaPrincipal = new PantallaPrincipal();
@@ -234,4 +309,3 @@ public class ControladorResultado {
         vista.setVisible(true);
     }
 }
-
