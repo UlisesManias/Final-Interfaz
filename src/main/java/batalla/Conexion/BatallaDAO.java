@@ -1,19 +1,11 @@
 package batalla.Conexion;
 
-import batalla.modelo.Personaje;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * DAO para la tabla 'batallas'
- * - insertarBatalla(...) guarda una fila en la tabla batallas
- * - obtenerHistorialRows() devuelve las últimas 10 filas (listas de String[])
- * para mostrar en un JTable
- * - listarTodasRows() devuelve todas las filas
- * - obtenerBatallaPorId(id) devuelve un objeto BatallaInfo con datos básicos de
- * la batalla
- * - borrarHistorial() elimina todas las filas (opcional, util)
+ * DAO para la tabla 'historial_batallas'
  */
 public class BatallaDAO {
 
@@ -22,40 +14,62 @@ public class BatallaDAO {
     }
 
     private void crearTablaSiNoExiste() {
-        String sql = "CREATE TABLE IF NOT EXISTS batallas ("
+        // ID y fecha se autogeneran/definen, el resto son los campos pedidos
+        String sql = "CREATE TABLE IF NOT EXISTS historial_batallas ("
                 + "id INTEGER PRIMARY KEY AUTOINCREMENT, "
                 + "fecha DATETIME DEFAULT CURRENT_TIMESTAMP, "
-                + "heroe_id INTEGER, "
-                + "villano_id INTEGER, "
-                + "ganador_id INTEGER, "
-                + "turnos INTEGER)";
+                + "heroe TEXT, "
+                + "villano TEXT, "
+                + "ganador TEXT, "
+                + "turnos INTEGER, "
+                + "combat_log TEXT, "
+                + "mayor_danio INTEGER, "
+                + "armas_heroe INTEGER, "
+                + "armas_villano INTEGER, "
+                + "supremos_heroe INTEGER, "
+                + "supremos_villano INTEGER, "
+                + "winrate_heroe TEXT, "
+                + "winrate_villano TEXT)";
 
         try (Connection conn = ConexionDB.conectar();
                 Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
         } catch (SQLException e) {
-            System.err.println("Error al crear tabla batallas: " + e.getMessage());
+            System.err.println("Error al crear tabla historial_batallas: " + e.getMessage());
         }
     }
 
     /**
-     * Inserta una batalla en la tabla 'batallas'.
-     *
-     * @param heroe   personaje héroe (debe tener id válido)
-     * @param villano personaje villano (debe tener id válido)
-     * @param ganador personaje ganador (debe tener id válido)
-     * @param turnos  cantidad de turnos
+     * Inserta una batalla en la tabla 'historial_batallas' con todos los detalles.
      */
-    public boolean insertarBatalla(Personaje heroe, Personaje villano, Personaje ganador, int turnos) {
-        String sql = "INSERT INTO batallas (fecha, heroe_id, villano_id, ganador_id, turnos) VALUES (CURRENT_TIMESTAMP, ?, ?, ?, ?)";
+    public boolean insertarBatalla(String heroe, String villano, String ganador, int turnos,
+            String combatLog, int mayorDanio,
+            int armasHeroe, int armasVillano,
+            int supremosHeroe, int supremosVillano,
+            String winrateHeroe, String winrateVillano) {
+
+        String sql = "INSERT INTO historial_batallas ("
+                + "heroe, villano, ganador, turnos, combat_log, "
+                + "mayor_danio, armas_heroe, armas_villano, "
+                + "supremos_heroe, supremos_villano, "
+                + "winrate_heroe, winrate_villano"
+                + ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = ConexionDB.conectar();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            ps.setInt(1, heroe.getId());
-            ps.setInt(2, villano.getId());
-            ps.setInt(3, ganador.getId());
+            ps.setString(1, heroe);
+            ps.setString(2, villano);
+            ps.setString(3, ganador);
             ps.setInt(4, turnos);
+            ps.setString(5, combatLog);
+            ps.setInt(6, mayorDanio);
+            ps.setInt(7, armasHeroe);
+            ps.setInt(8, armasVillano);
+            ps.setInt(9, supremosHeroe);
+            ps.setInt(10, supremosVillano);
+            ps.setString(11, winrateHeroe);
+            ps.setString(12, winrateVillano);
 
             int rows = ps.executeUpdate();
             return rows > 0;
@@ -67,63 +81,12 @@ public class BatallaDAO {
     }
 
     /**
-     * Obtiene las últimas 10 batallas (más recientes) como filas listas para un
-     * JTable.
-     * Cada String[] tiene: { id, fecha, heroe, villano, ganador, turnos }
-     *
-     * @return List<String[]> con máximo 10 filas ordenadas por fecha descendente
-     */
-    public List<String[]> obtenerHistorialRows() {
-        List<String[]> lista = new ArrayList<>();
-
-        String sql = "SELECT b.id, b.fecha, "
-                + "h.nombre AS heroe, v.nombre AS villano, g.nombre AS ganador, "
-                + "b.turnos "
-                + "FROM batallas b "
-                + "JOIN personajes h ON b.heroe_id = h.id "
-                + "JOIN personajes v ON b.villano_id = v.id "
-                + "JOIN personajes g ON b.ganador_id = g.id "
-                + "ORDER BY b.fecha DESC "
-                + "LIMIT 10";
-
-        try (Connection conn = ConexionDB.conectar();
-                PreparedStatement ps = conn.prepareStatement(sql);
-                ResultSet rs = ps.executeQuery()) {
-
-            while (rs.next()) {
-                String[] fila = new String[6];
-                fila[0] = String.valueOf(rs.getInt("id"));
-                fila[1] = rs.getString("fecha");
-                fila[2] = rs.getString("heroe");
-                fila[3] = rs.getString("villano");
-                fila[4] = rs.getString("ganador");
-                fila[5] = String.valueOf(rs.getInt("turnos"));
-
-                lista.add(fila);
-            }
-
-        } catch (SQLException e) {
-            System.err.println("Error al obtener historial: " + e.getMessage());
-        }
-
-        return lista;
-    }
-
-    /**
-     * Listar todas las batallas (sin límite).
-     * Útil para depuración o reportes.
+     * Listar todas las batallas para el historial general.
      */
     public List<String[]> listarTodasRows() {
         List<String[]> lista = new ArrayList<>();
 
-        String sql = "SELECT b.id, b.fecha, "
-                + "h.nombre AS heroe, v.nombre AS villano, g.nombre AS ganador, "
-                + "b.turnos "
-                + "FROM batallas b "
-                + "JOIN personajes h ON b.heroe_id = h.id "
-                + "JOIN personajes v ON b.villano_id = v.id "
-                + "JOIN personajes g ON b.ganador_id = g.id "
-                + "ORDER BY b.id DESC";
+        String sql = "SELECT id, fecha, heroe, villano, ganador, turnos FROM historial_batallas ORDER BY id DESC";
 
         try (Connection conn = ConexionDB.conectar();
                 PreparedStatement ps = conn.prepareStatement(sql);
@@ -149,20 +112,10 @@ public class BatallaDAO {
     }
 
     /**
-     * Devuelve información básica de una batalla por su id.
-     * Si necesitás más detalle (por-turno), habría que crear tabla eventos_batalla
-     * y guardarla al insertar.
+     * Devuelve toda la información de una batalla por su id.
      */
     public BatallaInfo obtenerBatallaPorId(int idBatalla) {
-        String sql = "SELECT b.id, b.fecha, b.turnos, "
-                + "h.id AS heroe_id, h.nombre AS heroe_nombre, h.apodo AS heroe_apodo, h.vida AS heroe_vida_final, "
-                + "v.id AS villano_id, v.nombre AS villano_nombre, v.apodo AS villano_apodo, v.vida AS villano_vida_final, "
-                + "g.id AS ganador_id, g.nombre AS ganador_nombre "
-                + "FROM batallas b "
-                + "JOIN personajes h ON b.heroe_id = h.id "
-                + "JOIN personajes v ON b.villano_id = v.id "
-                + "JOIN personajes g ON b.ganador_id = g.id "
-                + "WHERE b.id = ?";
+        String sql = "SELECT * FROM historial_batallas WHERE id = ?";
 
         try (Connection conn = ConexionDB.conectar();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -174,24 +127,22 @@ public class BatallaDAO {
                     BatallaInfo info = new BatallaInfo();
                     info.setId(rs.getInt("id"));
                     info.setFecha(rs.getString("fecha"));
+                    info.setHeroe(rs.getString("heroe"));
+                    info.setVillano(rs.getString("villano"));
+                    info.setGanador(rs.getString("ganador"));
                     info.setTurnos(rs.getInt("turnos"));
 
-                    info.setHeroeId(rs.getInt("heroe_id"));
-                    info.setHeroeNombre(rs.getString("heroe_nombre"));
-                    info.setHeroeApodo(rs.getString("heroe_apodo"));
-                    info.setHeroeVidaFinal(rs.getInt("heroe_vida_final"));
+                    info.setCombatLog(rs.getString("combat_log"));
+                    info.setMayorDanio(rs.getInt("mayor_danio"));
 
-                    info.setVillanoId(rs.getInt("villano_id"));
-                    info.setVillanoNombre(rs.getString("villano_nombre"));
-                    info.setVillanoApodo(rs.getString("villano_apodo"));
-                    info.setVillanoVidaFinal(rs.getInt("villano_vida_final"));
+                    info.setArmasHeroe(rs.getInt("armas_heroe"));
+                    info.setArmasVillano(rs.getInt("armas_villano"));
+                    info.setSupremosHeroe(rs.getInt("supremos_heroe"));
+                    info.setSupremosVillano(rs.getInt("supremos_villano"));
 
-                    info.setGanadorId(rs.getInt("ganador_id"));
-                    info.setGanadorNombre(rs.getString("ganador_nombre"));
+                    info.setWinrateHeroe(rs.getString("winrate_heroe"));
+                    info.setWinrateVillano(rs.getString("winrate_villano"));
 
-                    // Nota: el combat log no se almacena en la tabla batallas por defecto.
-                    // Si querés guardar el combatLog, debemos crear la tabla eventos_batalla u otra
-                    // solución.
                     return info;
                 }
             }
@@ -203,44 +154,37 @@ public class BatallaDAO {
         return null;
     }
 
-    /**
-     * Borra todo el historial de batallas. Úsalo con precaución (opcional).
-     */
     public void borrarHistorial() {
-        String sql = "DELETE FROM batallas";
+        String sql = "DELETE FROM historial_batallas";
 
         try (Connection conn = ConexionDB.conectar();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            int afectados = ps.executeUpdate();
-            System.out.println("batallas eliminadas: " + afectados);
-
+            ps.executeUpdate();
         } catch (SQLException e) {
             System.err.println("Error al borrar historial: " + e.getMessage());
         }
     }
 
     // ---------------- Clase auxiliar para devolver detalles de batalla
-    // ----------------
     public static class BatallaInfo {
         private int id;
         private String fecha;
+
+        private String heroe;
+        private String villano;
+        private String ganador;
         private int turnos;
 
-        private int heroeId;
-        private String heroeNombre;
-        private String heroeApodo;
-        private int heroeVidaFinal;
+        private String combatLog;
+        private int mayorDanio;
+        private int armasHeroe;
+        private int armasVillano;
+        private int supremosHeroe;
+        private int supremosVillano;
+        private String winrateHeroe;
+        private String winrateVillano;
 
-        private int villanoId;
-        private String villanoNombre;
-        private String villanoApodo;
-        private int villanoVidaFinal;
-
-        private int ganadorId;
-        private String ganadorNombre;
-
-        // getters / setters
+        // Getters y Setters
         public int getId() {
             return id;
         }
@@ -257,6 +201,30 @@ public class BatallaDAO {
             this.fecha = fecha;
         }
 
+        public String getHeroe() {
+            return heroe;
+        }
+
+        public void setHeroe(String heroe) {
+            this.heroe = heroe;
+        }
+
+        public String getVillano() {
+            return villano;
+        }
+
+        public void setVillano(String villano) {
+            this.villano = villano;
+        }
+
+        public String getGanador() {
+            return ganador;
+        }
+
+        public void setGanador(String ganador) {
+            this.ganador = ganador;
+        }
+
         public int getTurnos() {
             return turnos;
         }
@@ -265,84 +233,68 @@ public class BatallaDAO {
             this.turnos = turnos;
         }
 
-        public int getHeroeId() {
-            return heroeId;
+        public String getCombatLog() {
+            return combatLog;
         }
 
-        public void setHeroeId(int heroeId) {
-            this.heroeId = heroeId;
+        public void setCombatLog(String combatLog) {
+            this.combatLog = combatLog;
         }
 
-        public String getHeroeNombre() {
-            return heroeNombre;
+        public int getMayorDanio() {
+            return mayorDanio;
         }
 
-        public void setHeroeNombre(String heroeNombre) {
-            this.heroeNombre = heroeNombre;
+        public void setMayorDanio(int mayorDanio) {
+            this.mayorDanio = mayorDanio;
         }
 
-        public String getHeroeApodo() {
-            return heroeApodo;
+        public int getArmasHeroe() {
+            return armasHeroe;
         }
 
-        public void setHeroeApodo(String heroeApodo) {
-            this.heroeApodo = heroeApodo;
+        public void setArmasHeroe(int armasHeroe) {
+            this.armasHeroe = armasHeroe;
         }
 
-        public int getHeroeVidaFinal() {
-            return heroeVidaFinal;
+        public int getArmasVillano() {
+            return armasVillano;
         }
 
-        public void setHeroeVidaFinal(int heroeVidaFinal) {
-            this.heroeVidaFinal = heroeVidaFinal;
+        public void setArmasVillano(int armasVillano) {
+            this.armasVillano = armasVillano;
         }
 
-        public int getVillanoId() {
-            return villanoId;
+        public int getSupremosHeroe() {
+            return supremosHeroe;
         }
 
-        public void setVillanoId(int villanoId) {
-            this.villanoId = villanoId;
+        public void setSupremosHeroe(int supremosHeroe) {
+            this.supremosHeroe = supremosHeroe;
         }
 
-        public String getVillanoNombre() {
-            return villanoNombre;
+        public int getSupremosVillano() {
+            return supremosVillano;
         }
 
-        public void setVillanoNombre(String villanoNombre) {
-            this.villanoNombre = villanoNombre;
+        public void setSupremosVillano(int supremosVillano) {
+            this.supremosVillano = supremosVillano;
         }
 
-        public String getVillanoApodo() {
-            return villanoApodo;
+        public String getWinrateHeroe() {
+            return winrateHeroe;
         }
 
-        public void setVillanoApodo(String villanoApodo) {
-            this.villanoApodo = villanoApodo;
+        public void setWinrateHeroe(String winrateHeroe) {
+            this.winrateHeroe = winrateHeroe;
         }
 
-        public int getVillanoVidaFinal() {
-            return villanoVidaFinal;
+        public String getWinrateVillano() {
+            return winrateVillano;
         }
 
-        public void setVillanoVidaFinal(int villanoVidaFinal) {
-            this.villanoVidaFinal = villanoVidaFinal;
-        }
-
-        public int getGanadorId() {
-            return ganadorId;
-        }
-
-        public void setGanadorId(int ganadorId) {
-            this.ganadorId = ganadorId;
-        }
-
-        public String getGanadorNombre() {
-            return ganadorNombre;
-        }
-
-        public void setGanadorNombre(String ganadorNombre) {
-            this.ganadorNombre = ganadorNombre;
+        public void setWinrateVillano(String winrateVillano) {
+            this.winrateVillano = winrateVillano;
         }
     }
 }

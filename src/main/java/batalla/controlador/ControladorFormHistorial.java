@@ -23,28 +23,33 @@ public class ControladorFormHistorial {
     private void cargarDatos() {
 
         // -------- ENCABEZADOS --------
-        vista.setHeroeNombre(info.getHeroeNombre());
-        vista.setVillanoNombre(info.getVillanoNombre());
-        vista.setGanador(info.getGanadorNombre());
+        // Ajuste a los nuevos métodos de la clase interna BatallaInfo
+        vista.setHeroeNombre(info.getHeroe());
+        vista.setVillanoNombre(info.getVillano());
+        vista.setGanador(info.getGanador());
         vista.setTurnos(String.valueOf(info.getTurnos()));
 
         // -------- COMBAT LOG --------
-        // NOTA: el combat log no está guardado en la base de datos
-        vista.setCombatLog(
-            "=== COMBAT LOG ===\n" +
-            "(El combat log no está guardado en la base de datos.)\n" +
-            "Si querés guardarlo, puedo ayudarte a crear la tabla eventos_batalla."
-        );
+        if (info.getCombatLog() != null && !info.getCombatLog().isEmpty()) {
+            vista.setCombatLog(info.getCombatLog());
+        } else {
+            vista.setCombatLog("Sin registro detallado.");
+        }
 
-        // -------- ESTADÍSTICAS BÁSICAS --------
-        vista.setMayorDanio("N/A");
-        vista.setBatallaMasLarga(info.getTurnos() + " turnos");
-        vista.setArmasHeroe("N/A");
-        vista.setArmasVillano("N/A");
-        vista.setSupremosHeroe("N/A");
-        vista.setSupremosVillano("N/A");
-        vista.setWinrateHeroe("N/A");
-        vista.setWinrateVillano("N/A");
+        // -------- ESTADÍSTICAS --------
+        vista.setMayorDanio(String.valueOf(info.getMayorDanio()));
+        // vista.setBatallaMasLarga(info.getTurnos() + " turnos"); // "batalla mas
+        // larga" es un record global, info.turnos es de esta batalla
+        vista.setBatallaMasLarga(String.valueOf(info.getTurnos())); // Reutilizamos el label para mostrar turnos de esta
+                                                                    // batalla si se desea, o lo dejamos así.
+
+        vista.setArmasHeroe(String.valueOf(info.getArmasHeroe()));
+        vista.setArmasVillano(String.valueOf(info.getArmasVillano()));
+        vista.setSupremosHeroe(String.valueOf(info.getSupremosHeroe()));
+        vista.setSupremosVillano(String.valueOf(info.getSupremosVillano()));
+
+        vista.setWinrateHeroe(info.getWinrateHeroe());
+        vista.setWinrateVillano(info.getWinrateVillano());
     }
 
     public void iniciar() {

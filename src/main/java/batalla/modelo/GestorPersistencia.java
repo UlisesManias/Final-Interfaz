@@ -106,7 +106,7 @@ public class GestorPersistencia {
      */
     public static List<String> cargarHistorial() {
         BatallaDAO dao = new BatallaDAO();
-        List<String[]> rows = dao.obtenerHistorialRows();
+        List<String[]> rows = dao.listarTodasRows();
 
         List<String> historial = new ArrayList<>();
 

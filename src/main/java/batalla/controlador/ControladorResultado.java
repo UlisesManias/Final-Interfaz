@@ -240,52 +240,90 @@ public class ControladorResultado {
         }
 
         // ================================
-        // 1) Asegurar que los Personajes existen en la BD
+        // 1) Asegurar que los Personajes existen en la BD (opcional si ya están)
         // ================================
         PersonajeDAO pdao = new PersonajeDAO();
         pdao.asegurarPersonajeEnBD(heroe);
         pdao.asegurarPersonajeEnBD(villano);
 
         // ================================
-        // 2) Guardar cada batalla individualmente
+        // 2) Preparar datos para historial_batallas
         // ================================
         BatallaDAO batallaDAO = new BatallaDAO();
         int guardadas = 0;
 
-        // Si tenemos datos detallados por batalla
+        // Winrates calculados "al momento"
+        int victoriasH = heroe.getVictorias();
+        int batallasH = heroe.getVictorias() + heroe.getDerrotas();
+        double winrateH = batallasH > 0 ? (double) victoriasH / batallasH * 100 : 0;
+
+        int victoriasV = villano.getVictorias();
+        int batallasV = villano.getVictorias() + villano.getDerrotas();
+        double winrateV = batallasV > 0 ? (double) victoriasV / batallasV * 100 : 0;
+
+        String winrateHeroeStr = String.format("%.2f%%", winrateH);
+        String winrateVillanoStr = String.format("%.2f%%", winrateV);
+
+        // Si tenemos datos detallados por batalla (modo varias batallas)
         if (ganadoresPorBatalla != null && turnosPorBatalla != null) {
             for (int i = 0; i < totalBatallas; i++) {
                 if (i < ganadoresPorBatalla.size() && i < turnosPorBatalla.size()) {
                     String nombreGanador = ganadoresPorBatalla.get(i);
                     int turnosBatalla = turnosPorBatalla.get(i);
 
-                    Personaje ganadorObj = nombreGanador.equals(heroe.getNombre()) ? heroe : villano;
+                    // Nota: En modo multi-batalla, estos contadores deberían ser por batalla,
+                    // pero aquí tenemos los acumulados en el objeto Personaje.
+                    // Para simplificar, dividimos o usamos el total (la UI mostrará total sesión).
+                    // Para ser más precisos, guardamos el total acumulado hasta ese punto.
 
-                    // Asegurar también al ganador (aunque ya aseguramos heroe/villano arriba)
-                    pdao.asegurarPersonajeEnBD(ganadorObj);
+                    // Simples estimaciones de "armas por batalla" si no las trackeamos
+                    // individualmente
+                    int armasH = heroe.getArmasInvocadas() / totalBatallas;
+                    int armasV = villano.getArmasInvocadas() / totalBatallas;
+                    int supremosH = heroe.getAtaquesSupremosUsados() / totalBatallas;
+                    int supremosV = villano.getAtaquesSupremosUsados() / totalBatallas;
 
-                    if (batallaDAO.insertarBatalla(heroe, villano, ganadorObj, turnosBatalla)) {
+                    // Combat log: concatenamos el resumen si existe
+                    String logBatalla = "";
+                    if (partidaGuardada != null && partidaGuardada.getCombatLog() != null) {
+                        logBatalla = String.join("\n", partidaGuardada.getCombatLog());
+                    }
+
+                    if (batallaDAO.insertarBatalla(heroe.getNombre(), villano.getNombre(), nombreGanador, turnosBatalla,
+                            logBatalla, mayorDanio, armasH, armasV, supremosH, supremosV, winrateHeroeStr,
+                            winrateVillanoStr)) {
                         guardadas++;
                     }
                 }
             }
         } else {
-            // Fallback para compatibilidad (una sola batalla o sin detalles)
-            Personaje ganadorObj = ganador.equals(heroe.getNombre()) ? heroe : villano;
-            pdao.asegurarPersonajeEnBD(ganadorObj);
-            if (batallaDAO.insertarBatalla(heroe, villano, ganadorObj, turnos)) {
+            // Caso batalla individual
+            String logBatalla = "";
+            if (partidaGuardada != null && partidaGuardada.getCombatLog() != null) {
+                logBatalla = String.join("\n", partidaGuardada.getCombatLog());
+            } else {
+                // Generar log básico si no hay
+                logBatalla = "Batalla: " + heroe.getNombre() + " vs " + villano.getNombre() + "\n" +
+                        "Ganador: " + ganador + "\n" +
+                        "Turnos: " + turnos;
+            }
+
+            if (batallaDAO.insertarBatalla(heroe.getNombre(), villano.getNombre(), ganador, turnos,
+                    logBatalla, mayorDanio, heroe.getArmasInvocadas(), villano.getArmasInvocadas(),
+                    heroe.getAtaquesSupremosUsados(), villano.getAtaquesSupremosUsados(),
+                    winrateHeroeStr, winrateVillanoStr)) {
                 guardadas = 1;
             }
         }
 
         if (guardadas > 0) {
             javax.swing.JOptionPane.showMessageDialog(vista,
-                    "Se han guardado " + guardadas + " batallas correctamente en la base de datos.",
+                    "Se han guardado " + guardadas + " batallas en el historial.",
                     "Éxito",
                     javax.swing.JOptionPane.INFORMATION_MESSAGE);
         } else {
             javax.swing.JOptionPane.showMessageDialog(vista,
-                    "Error al guardar las batallas. Verifique la consola para más detalles.",
+                    "Error al guardar las batallas.",
                     "Error",
                     javax.swing.JOptionPane.ERROR_MESSAGE);
         }
