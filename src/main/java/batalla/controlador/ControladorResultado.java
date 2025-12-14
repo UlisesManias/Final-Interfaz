@@ -90,9 +90,6 @@ public class ControladorResultado {
     private PartidaGuardada partidaGuardada;
     // Estadísticas y metadatos usados en el reporte y al guardar partidas
     private int mayorDanio;
-    private String personajeMayorDanio;
-    private int batallaMasLarga;
-    private String ganadorBatallaMasLarga;
 
     private void configurarEventos() {
         vista.getBtnVolver().addActionListener(e -> volverPrincipal());
@@ -151,9 +148,6 @@ public class ControladorResultado {
             List<String> ganadoresPorBatalla) {
         this.partidaGuardada = partida;
         this.mayorDanio = mayorDanio;
-        this.personajeMayorDanio = personajeMayorDanio;
-        this.batallaMasLarga = batallaMasLarga;
-        this.ganadorBatallaMasLarga = ganadorBatallaMasLarga;
         vista.limpiar();
 
         // Mostrar datos en tabla - una fila por batalla

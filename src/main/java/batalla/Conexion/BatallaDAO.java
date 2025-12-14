@@ -3,6 +3,7 @@ package batalla.Conexion;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import javax.swing.JOptionPane;
 
 /**
  * DAO para la tabla 'historial_batallas'
@@ -38,6 +39,8 @@ public class BatallaDAO {
             stmt.execute(sql);
         } catch (SQLException e) {
             System.err.println("Error al crear tabla batallas: " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "Error al crear tabla batallas: " + e.getMessage(), "Error SQL",
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -75,8 +78,8 @@ public class BatallaDAO {
 
         } catch (SQLException e) {
             System.err.println("Error al insertar batalla: " + e.getMessage());
-            javax.swing.JOptionPane.showMessageDialog(null, "Error al guardar en BD: " + e.getMessage(), "Error SQL",
-                    javax.swing.JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(null, "Error al guardar en BD: " + e.getMessage(), "Error SQL",
+                    JOptionPane.ERROR_MESSAGE);
             return false;
         }
     }
@@ -113,6 +116,8 @@ public class BatallaDAO {
 
         } catch (SQLException e) {
             System.err.println("Error al listar todas las batallas: " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "Error al listar batallas: " + e.getMessage(), "Error SQL",
+                    JOptionPane.ERROR_MESSAGE);
         }
 
         return lista;
@@ -164,19 +169,22 @@ public class BatallaDAO {
 
         } catch (SQLException e) {
             System.err.println("Error al obtener batalla por id: " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "Error al obtener batalla: " + e.getMessage(), "Error SQL",
+                    JOptionPane.ERROR_MESSAGE);
         }
 
         return null;
     }
 
     public void borrarHistorial() {
-        String sql = "DELETE FROM historial_batallas";
+        String sql = "DELETE FROM batallas";
 
         try (Connection conn = ConexionDB.conectar();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.executeUpdate();
         } catch (SQLException e) {
-            System.err.println("Error al borrar historial: " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "Error al borrar historial: " + e.getMessage(), "Error SQL",
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
 

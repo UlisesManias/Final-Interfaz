@@ -1,24 +1,21 @@
 package batalla.controlador;
 
 import batalla.Conexion.BatallaDAO;
-import batalla.Conexion.PersonajeDAO;
+
 import batalla.vista.PantallaHistorial;
 import batalla.vista.PantallaPrincipal;
 import batalla.vista.formHistorial;
 import java.util.List;
 import javax.swing.JOptionPane;
-import javax.swing.table.DefaultTableModel;
 
 public class ControladorHistorial {
 
     private final PantallaHistorial vista;
     private final BatallaDAO batallaDAO;
-    private final PersonajeDAO personajeDAO;
 
     public ControladorHistorial(PantallaHistorial vista) {
         this.vista = vista;
         this.batallaDAO = new BatallaDAO();
-        this.personajeDAO = new PersonajeDAO();
         inicializar();
     }
 

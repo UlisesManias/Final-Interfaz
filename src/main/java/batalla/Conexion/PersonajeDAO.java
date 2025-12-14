@@ -4,6 +4,7 @@ import batalla.modelo.Personaje;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import javax.swing.JOptionPane;
 
 public class PersonajeDAO {
 
@@ -31,6 +32,8 @@ public class PersonajeDAO {
             stmt.execute(sql);
         } catch (SQLException e) {
             System.err.println("Error al crear tabla personajes: " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "Error al crear tabla personajes: " + e.getMessage(), "Error SQL",
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -60,6 +63,8 @@ public class PersonajeDAO {
 
         } catch (SQLException e) {
             System.err.println("Error al insertar personaje: " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "Error al insertar personaje: " + e.getMessage(), "Error SQL",
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -87,6 +92,8 @@ public class PersonajeDAO {
 
         } catch (SQLException e) {
             System.err.println("Error al actualizar estadísticas: " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "Error al actualizar estadísticas: " + e.getMessage(), "Error SQL",
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -102,6 +109,8 @@ public class PersonajeDAO {
 
         } catch (SQLException e) {
             System.err.println("Error al eliminar personaje: " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "Error al eliminar personaje: " + e.getMessage(), "Error SQL",
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -124,6 +133,8 @@ public class PersonajeDAO {
 
         } catch (SQLException e) {
             System.err.println("Error al buscar personaje: " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "Error al buscar personaje: " + e.getMessage(), "Error SQL",
+                    JOptionPane.ERROR_MESSAGE);
         }
 
         return p;
@@ -145,6 +156,8 @@ public class PersonajeDAO {
 
         } catch (SQLException e) {
             System.err.println("Error al listar personajes: " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "Error al listar personajes: " + e.getMessage(), "Error SQL",
+                    JOptionPane.ERROR_MESSAGE);
         }
 
         return lista;
@@ -166,6 +179,8 @@ public class PersonajeDAO {
 
         } catch (SQLException e) {
             System.err.println("Error al obtener ranking: " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "Error al obtener ranking: " + e.getMessage(), "Error SQL",
+                    JOptionPane.ERROR_MESSAGE);
         }
 
         return lista;
@@ -244,6 +259,8 @@ public class PersonajeDAO {
             }
         } catch (SQLException e) {
             System.err.println("Error al buscar personaje: " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "Error al buscar personaje: " + e.getMessage(), "Error SQL",
+                    JOptionPane.ERROR_MESSAGE);
         }
 
         // 2) SI NO EXISTE → INSERTARLO
@@ -277,6 +294,8 @@ public class PersonajeDAO {
 
         } catch (SQLException e) {
             System.err.println("Error al insertar personaje: " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "Error al insertar personaje: " + e.getMessage(), "Error SQL",
+                    JOptionPane.ERROR_MESSAGE);
         }
 
         return -1;
