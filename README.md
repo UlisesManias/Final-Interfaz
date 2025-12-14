@@ -13,22 +13,11 @@ Dependencias:
 
 ## Comportamiento de persistencia (Historial de partidas)
 
-- Cuando se guarda una partida desde la pantalla de resultados (`btnGuardarPartida`) la aplicación crea (si no existe) la carpeta `HistorialPartidas/` en la raíz del proyecto.
-- Cada partida se guarda en un archivo independiente llamado `BatallaN.txt` (incremental) con el siguiente formato:
-
-```
-HEROE: <nombre_heroe>
-VILLANO: <nombre_villano>
-GANADOR: <nombre_ganador>
-TURNOS: <numero_turnos>
-COMBATLOG_START
-... lineas de combat log ...
-COMBATLOG_END
-```
-
-- La pantalla de historial (`PantallaHistorial`) lista los archivos `BatallaN.txt` y muestra en la tabla las columnas: `N° Batalla`, `Héroe`, `Villano`, `Ganador`, `Turnos`.
-- Al seleccionar una fila y pulsar `Cargar Partida`, se abre `formHistorial` mostrando el `CombatLog` en `txtCombatLog` y los metadatos (Héroe, Villano, Ganador, Turnos) en el encabezado.
-- Existe la opción `Borrar Partida` para eliminar el archivo `BatallaN.txt` seleccionado.
+- La persistencia de batallas se realiza ahora mediante una base de datos **SQLite**.
+- Al guardar una partida (`btnGuardarPartida`) en la pantalla de resultados, se inserta un registro en la tabla `historial_batallas`.
+- Este registro incluye: fecha, héroe, villano, ganador, turnos, estadísticas detalladas y el **Combat Log** completo.
+- Además, se actualizan las estadísticas acumuladas (victorias, derrotas, etc.) de los personajes involucrados en la tabla `personajes`.
+- La pantalla de historial y los detalles (`formHistorial`) recuperan la información directamente de la base de datos utilizando `BatallaDAO`.
 
 ## Estructura del proyecto (resumen)
 
@@ -36,7 +25,7 @@ COMBATLOG_END
 IEFI-InterfazGrafica/
 ├─ pom.xml
 ├─ README.md
-├─ HistorialPartidas/                # carpeta creada en tiempo de ejecución con BatallaN.txt
+
 ├─ src/
 │  ├─ main/
 │  │  ├─ java/

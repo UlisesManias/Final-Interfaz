@@ -240,11 +240,15 @@ public class ControladorResultado {
         }
 
         // ================================
-        // 1) Asegurar que los Personajes existen en la BD (opcional si ya están)
+        // 1) Asegurar que los Personajes existen en la BD y actualizar sus estadísticas
         // ================================
         PersonajeDAO pdao = new PersonajeDAO();
         pdao.asegurarPersonajeEnBD(heroe);
         pdao.asegurarPersonajeEnBD(villano);
+
+        // Actualizar estadísticas acumuladas (victorias, derrotas, etc.)
+        pdao.actualizarEstadisticas(heroe);
+        pdao.actualizarEstadisticas(villano);
 
         // ================================
         // 2) Preparar datos para historial_batallas
