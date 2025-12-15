@@ -77,4 +77,4 @@ Durante el desarrollo se usaron las siguientes ayudas y recursos:
 
 - Google Antigravity para testing y búsqueda de errores.
 - Chat-GPT para la ayuda en el desarrollo.
-- YouTube para tutoriales de Java Swing y SQLite.
+- Video Explicativo https://youtu.be/1OBMvz_zkRo
