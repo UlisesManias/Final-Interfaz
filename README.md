@@ -1,70 +1,80 @@
-# IEFI - Batallas (Proyecto Java Swing)
+# Juego de Batallas: Héroes vs Villanos
 
-Este repositorio contiene una aplicación de batalla (Héroe vs Villano) hecha en Java con arquitectura MVC y una interfaz gráfica basada en Swing.
+Este es un juego de estrategia por turnos desarrollado en **Java** utilizando **Swing** para la interfaz gráfica y **SQLite** para la persistencia de datos. Los jugadores pueden crear personajes (Héroes o Villanos), enfrentarlos en batallas épicas y guardar el historial de sus combates.
 
-## Instrucciones de ejecución
+## Características Principales
 
-Requisitos mínimos:
-- JDK 11 o JDK 17 (recomendado: JDK 17 LTS). Asegúrate de que `java` y `javac` apunten a la versión instalada.
-- Maven 3.x para construir el proyecto.
+*   **Creación de Personajes**: Personaliza el nombre, apodo y estadísticas (vida, fuerza, defensa) de tus héroes y villanos.
+*   **Sistema de Batalla por Turnos**: Combate estratégico donde cada personaje tiene turno para atacar.
+*   **Mecánicas Avanzadas**:
+    *   **Invocación de Armas**: Posibilidad de obtener armas especiales durante el combate.
+    *   **Ataques Supremos**: Poderosos ataques que pueden cambiar el curso de la batalla.
+*   **Historial y Ranking**:
+    *   Guardado automático de estadísticas en base de datos SQLite.
+    *   Visualización de historial de batallas detallado.
+    *   Tabla de posiciones (Ranking) basada en victorias.
+*   **Persistencia**: Todos los datos (personajes, batallas, récords) se guardan localmente en `src/main/java/batalla/database/BDjuego.db`.
 
-Dependencias:
-- No se usan librerías externas aparte de las que proporciona Java SE (Swing). El proyecto utiliza Maven para gestión de compilación pero no requiere dependencias adicionales en `pom.xml` por defecto.
+## Requisitos del Sistema
 
-## Comportamiento de persistencia (Historial de partidas)
+Para ejecutar este proyecto correctamente necesitas:
 
-- La persistencia de batallas se realiza ahora mediante una base de datos **SQLite**.
-- Al guardar una partida (`btnGuardarPartida`) en la pantalla de resultados, se inserta un registro en la tabla `historial_batallas`.
-- Este registro incluye: fecha, héroe, villano, ganador, turnos, estadísticas detalladas y el **Combat Log** completo.
-- Además, se actualizan las estadísticas acumuladas (victorias, derrotas, etc.) de los personajes involucrados en la tabla `personajes`.
-- La pantalla de historial y los detalles (`formHistorial`) recuperan la información directamente de la base de datos utilizando `BatallaDAO`.
+*   **Java Development Kit (JDK) 22** o superior.
+*   **Apache Maven** (para la gestión de dependencias).
+*   Un IDE compatible con Java/Maven (Recomendado: NetBeans, IntelliJ IDEA, Eclipse).
 
-## Estructura del proyecto (resumen)
+## Instalación y Ejecución
 
-```
-IEFI-InterfazGrafica/
-├─ pom.xml
-├─ README.md
+### 1. Clonar o Descargar
+Descarga el código fuente de este repositorio en tu computadora.
 
-├─ src/
-│  ├─ main/
-│  │  ├─ java/
-│  │  │  ├─ batalla/
-│  │  │  │  ├─ controlador/         # controladores MVC
-│  │  │  │  │  ├─ ControladorHistorial.java
-│  │  │  │  │  ├─ ControladorResultado.java
-│  │  │  │  │  └─ ...
-│  │  │  │  ├─ modelo/              # clases del dominio y persistencia
-│  │  │  │  │  ├─ GestorPersistencia.java
-│  │  │  │  │  ├─ PartidaGuardada.java
-│  │  │  │  │  ├─ Heroe.java
-│  │  │  │  │  └─ Villano.java
-│  │  │  │  └─ vista/               # vistas Swing (JFrame / formularios)
-│  │  │  │     ├─ PantallaHistorial.java
-│  │  │  │     ├─ PantallaResultado.java
-│  │  │  │     └─ formHistorial.java
-│  │  │  └─ batalla/MainLauncher.java
-│  │  └─ resources/
-│  └─ test/
-└─ target/
-```
+### 2. Abrir en IDE
+*   Abre tu IDE de preferencia (ej. NetBeans).
+*   Selecciona `File > Open Project` y navega a la carpeta root del proyecto (donde está el `pom.xml`).
 
-## Integrantes y roles
+### 3. Construir el Proyecto (Build)
+Ejecuta la construcción con Maven para descargar la dependencia de SQLite (`sqlite-jdbc`).
+*   En NetBeans: Click derecho en el proyecto -> `Clean and Build`.
+*   En Terminal: `mvn clean install`
 
-- Tomás — Modelo y Main
-- Lourdes — Controlador
-- Ulises — Vistas
+### 4. Ejecutar la Aplicación
+La clase principal que inicia la aplicación es `batalla.main.Main`.
+*   En el IDE: Busca el archivo `src/main/java/batalla/main/Main.java`, click derecho -> `Run File`.
+*   Si el IDE te pregunta la clase principal al dar "Run Project", selecciona `batalla.main.Main`.
 
-## Uso de IA / Herramientas externas
+## Guía de Uso
+
+1.  **Menú Principal**:
+    *   **Jugar**: Inicia el flujo de una nueva batalla.
+    *   **Ranking**: Muestra los personajes con más victorias.
+    *   **Historial**: Muestra la lista de batallas pasadas.
+    *   **Salir**: Cierra la aplicación.
+
+2.  **Nueva Batalla**:
+    *   Ingresa los datos para el **Héroe** y el **Villano**.
+    *   ¡Cuidado con el **Apodo**! Es único. Si usas un apodo existente, cargarás las estadísticas de ese personaje.
+    *   Configura los puntos de **Fuerza**, **Defensa** y **Vida**. Asegúrate de que los puntos totales no excedan el límite permitido (200).
+
+3.  **Combate**:
+    *   Usa el botón **"Iniciar"** para comenzar la simulación.
+    *   Puedes pausar la batalla en cualquier momento.
+    *   Observa el *Combat Log* para ver los eventos turno a turno.
+
+4.  **Resultados**:
+    *   Al finalizar, verás una pantalla con el ganador y las estadísticas.
+    *   Haz clic en **"Guardar Partida"** para registrar la batalla en la base de datos. ¡No olvides este paso si quieres que cuente para el Ranking!
+
+## Estructura del Proyecto
+
+*   `src/main/java/batalla/modelo`: Clases lógicas (Personaje, Héroe, Villano, Armas).
+*   `src/main/java/batalla/vista`: Ventanas e interfaz gráfica (JFrames).
+*   `src/main/java/batalla/controlador`: Lógica de control que une la vista y el modelo.
+*   `src/main/java/batalla/Conexion`: Gestión de base de datos (DAOs y Conexión SQLite).
+
+## Créditos y Recursos
 
 Durante el desarrollo se usaron las siguientes ayudas y recursos:
 
-- GitHub Copilot
-- Chat-GPT
-- YouTube
-
-Prompts Ulises: https://chatgpt.com/share/6915c3a6-3e64-8010-8ad7-d0dc58ad400e
-Video Youtube Ulises: https://www.youtube.com/watch?v=L2xczUN9aI0 / https://www.youtube.com/watch?v=LP7_DlIe670
-
-## Video explicando
-- https://youtu.be/KJyrmycQ5Vc
+- Google Antigravity para testing y búsqueda de errores.
+- Chat-GPT para la ayuda en el desarrollo.
+- YouTube para tutoriales de Java Swing y SQLite.
