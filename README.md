@@ -76,5 +76,5 @@ La clase principal que inicia la aplicación es `batalla.main.Main`.
 Durante el desarrollo se usaron las siguientes ayudas y recursos:
 
 - Google Antigravity para testing y búsqueda de errores.
-- Chat-GPT para la ayuda en el desarrollo.
+- Chat-GPT para la ayuda en el desarrollo. Link Conversación: https://chatgpt.com/share/693f8f7e-bfc4-8007-b5b2-949c9e3ddf42
 - Video Explicativo https://youtu.be/1OBMvz_zkRo
